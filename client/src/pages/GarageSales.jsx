@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './GarageSales.css';
+import { AddressesContext } from '../AddressesContext';
 
 const api = axios.create({
   baseURL: 'http://localhost:3001',
@@ -9,12 +10,21 @@ const api = axios.create({
 });
 
 function GarageSales() {
+  const { 
+    addresses, 
+    setAddresses, 
+    filteredAddresses, 
+    filterAddresses 
+  } = useContext(AddressesContext);
+
   const [garageSales, setGarageSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSales, setSelectedSales] = useState(new Set());
   const navigate = useNavigate();
+
+  console.info('addresses:', addresses);
 
   useEffect(() => {
     fetchGarageSales();
@@ -23,7 +33,6 @@ function GarageSales() {
   const fetchGarageSales = async () => {
     try {
       setLoading(true);
-      const { data: addresses } = await api.get('/api/addresses');
       // Add a unique ID to each sale
       const salesWithIds = addresses.map((sale, index) => ({
         ...sale,
