@@ -464,6 +464,25 @@ const CommunitySalesAdmin = () => {
           Create a New Community Sales Event
         </button>
         
+        <button 
+          className="create-garage-sale-button"
+          onClick={() => {
+            // Navigate to the garage sales admin page
+            if (communitySales.length > 0) {
+              // Use the first community sale if available
+              const firstSale = communitySales[0];
+              setCommunityName(firstSale.name);
+              setCommunityId(firstSale.id);
+              navigate(`/admin/sales?communityId=${firstSale.id}`);
+            } else {
+              // If no community sales exist, alert the user
+              alert('Please create a Community Sales Event first before creating garage sales.');
+            }
+          }}
+        >
+          Create a New Garage Sale
+        </button>
+        
         {selectedSales.size > 0 && (
           <>
             <button 
