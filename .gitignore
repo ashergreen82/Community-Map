@@ -36,3 +36,6 @@ backend/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Markdown preview files
+markdown-preview.html
