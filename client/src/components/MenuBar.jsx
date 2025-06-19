@@ -88,18 +88,64 @@ const MenuBar = () => {
   }
 
   return (
-    <nav className="menu-bar">
-      <div className="menu-bar-item" onClick={() => handleNavigation('/about')}>About</div>
-      <div className="menu-bar-item" onClick={() => handleNavigation('/list-active-community-sales-events')}>Active Community Sales Events</div>
-      <div className="menu-bar-item" onClick={handleGarageSalesClick}>Garage Sales</div>
-      <div className="menu-bar-item" onClick={handleRegisterGarageSaleClick}>Register a Garage Sale</div>
-      <div className="menu-bar-item" onClick={() => handleNavigation('/admin/community-sales')}>Manage Community Sales</div>
-      {isAuthenticated ? (
-        <div className="menu-bar-item" onClick={handleLogout}>Logout</div>
+    <nav className="flex justify-center py-4 bg-slate-800 sticky top-0 z-50">
+      {isCompactView ? (
+        <MenuBarHamburger />
       ) : (
-        <div className="menu-bar-item" onClick={() => handleNavigation('/login?from=landing')}>Login</div>
+        <div className="flex flex-wrap justify-center">
+          <button 
+            className="text-white px-6 py-3 text-xl font-medium transition-colors cursor-pointer hover:bg-slate-700"
+            onClick={() => handleNavigation('/about')}
+          >
+            About
+          </button>
+          <button 
+            className="text-white px-6 py-3 text-xl font-medium transition-colors cursor-pointer hover:bg-slate-700"
+            onClick={() => handleNavigation('/list-active-community-sales-events')}
+          >
+            Active Community Sales Events
+          </button>
+          <button 
+            className="text-white px-6 py-3 text-xl font-medium transition-colors cursor-pointer hover:bg-slate-700"
+            onClick={handleGarageSalesClick}
+          >
+            Garage Sales
+          </button>
+          <button 
+            className="text-white px-6 py-3 text-xl font-medium transition-colors cursor-pointer hover:bg-slate-700"
+            onClick={handleRegisterGarageSaleClick}
+          >
+            Register a Garage Sale
+          </button>
+          <button 
+            className="text-white px-6 py-3 text-xl font-medium transition-colors cursor-pointer hover:bg-slate-700"
+            onClick={() => handleNavigation('/admin/community-sales')}
+          >
+            Manage Community Sales
+          </button>
+          <button 
+            className="text-white px-6 py-3 text-xl font-medium transition-colors cursor-pointer hover:bg-slate-700"
+            onClick={() => handleNavigation('/info')}
+          >
+            Info
+          </button>
+          {isAuthenticated ? (
+            <button 
+              className="text-white px-6 py-3 text-xl font-medium transition-colors cursor-pointer hover:bg-slate-700"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          ) : (
+            <button 
+              className="text-white px-6 py-3 text-xl font-medium transition-colors cursor-pointer hover:bg-slate-700"
+              onClick={() => handleNavigation('/login?from=landing')}
+            >
+              Login
+            </button>
+          )}
+        </div>
       )}
-      <div className="menu-bar-item" onClick={() => handleNavigation('/info')}>Info</div>
     </nav>
   );
 };
