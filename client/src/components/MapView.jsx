@@ -123,9 +123,12 @@ function MapView({ mapContainerStyle, mapOptions }) {
       console.log('MapView: Setting community ID from URL:', urlCommunityId);
       setCommunityId(urlCommunityId);
     } else if (!communityId && !location.search) {
-      // Only navigate away if there are no search params at all
-      console.log('MapView: No community ID provided and no URL params, navigating to landing page');
-      navigate('/about');
+      // Default to a specific community ID when none is provided
+      const defaultCommunityId = 'eef06da4-788b-435b-8f84-9467dd5b89a9';
+      console.log('MapView: No community ID provided, defaulting to:', defaultCommunityId);
+      setCommunityId(defaultCommunityId);
+      // Update the URL to include the default community ID
+      navigate(`?communityId=${defaultCommunityId}`, { replace: true });
     }
   }, [urlCommunityId, communityId, setCommunityId, navigate, componentMounted, location.search]);
 
