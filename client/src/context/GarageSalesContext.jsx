@@ -57,7 +57,7 @@ export function GarageSalesProvider({ children }) {
         : await api.getAddresses();
       
       console.warn('GarageSalesContext: Fetching with communityId:', communityId);
-      console.log('GarageSalesContext: Raw API response:', response);
+      console.log('GarageSalesContext: Raw API response:', JSON.stringify(response));
       
       // Handle case where response.data is false instead of an empty array
       if (response && response.data === false) {
@@ -87,10 +87,11 @@ export function GarageSalesProvider({ children }) {
 
           return {
             id: sale.id,
+            name: sale.name || '',
             address: address,
             description: sale.description || 'No description available',
             position: position,
-            highlightedItems: sale.highlightedItems || [],
+            highlightedItems: Array.isArray(sale.highlightedItems) ? sale.highlightedItems.join(', ') : '',
             // Also include featuredItems for backward compatibility
             featuredItems: sale.highlightedItems || []
           };
