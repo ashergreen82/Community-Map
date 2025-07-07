@@ -155,7 +155,7 @@ const ListActiveCommunitySalesEvents = () => {
                 }}
                 aria-label={`View ${sale.name} on map`}
                 style={{
-                  width: isManagedByUser ? 'calc(100% - 100px)' : '100%',
+                  width: '100%',
                   textAlign: 'left',
                   padding: '16px',
                   border: '1px solid #e0e0e0',
@@ -163,45 +163,49 @@ const ListActiveCommunitySalesEvents = () => {
                   background: '#fff',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  display: 'inline-block',
-                  verticalAlign: 'top',
-                  marginRight: isManagedByUser ? '8px' : '0',
+                  position: 'relative',
                 }}
                 onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'}
                 onMouseOut={(e) => e.currentTarget.style.boxShadow = 'none'}
               >
-                <h2 style={{ margin: 0 }}>{sale.name}</h2>
-                <div style={{ color: '#555', fontSize: 15 }}>
-                  <strong>Location:</strong> {sale.location} <br />
-                  <span style={{ display: 'block', margin: '8px 0', color: '#333' }}>{sale.description}</span>
-                  <strong>Start:</strong> {formatDate(sale.startDate)} <br />
-                  <strong>End:</strong> {formatDate(sale.endDate)}
+                <div style={{ paddingRight: isManagedByUser ? '90px' : '0', position: 'relative' }}>
+                  <h2 style={{ margin: 0 }}>{sale.name}</h2>
+                  <div style={{ color: '#555', fontSize: 15 }}>
+                    <strong>Location:</strong> {sale.location} <br />
+                    <span style={{ display: 'block', margin: '8px 0', color: '#333' }}>{sale.description}</span>
+                    <strong>Start:</strong> {formatDate(sale.startDate)} <br />
+                    <strong>End:</strong> {formatDate(sale.endDate)}
+                  </div>
                 </div>
+                
+                {isManagedByUser && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/admin/community-sales`);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '16px',
+                      right: '16px',
+                      width: '80px',
+                      padding: '8px 0',
+                      border: '1px solid #1976d2',
+                      borderRadius: '6px',
+                      background: '#1976d2',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
+                    onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+                  >
+                    Manage
+                  </button>
+                )}
               </button>
-              
-              {isManagedByUser && (
-                <button
-                  onClick={() => navigate(`/admin/community-sales`)}
-                  style={{
-                    width: '90px',
-                    height: '100%',
-                    padding: '16px 8px',
-                    border: '1px solid #1976d2',
-                    borderRadius: '8px',
-                    background: '#1976d2',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    transition: 'all 0.2s ease',
-                    verticalAlign: 'top',
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
-                  onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
-                >
-                  Manage
-                </button>
-              )}
             </li>
           );
         })}
