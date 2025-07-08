@@ -13,7 +13,7 @@ const RegisterGarageSale = () => {
   
   // Form state
   const [formData, setFormData] = useState({
-    name: 'Garage Sale',  // Set default name
+    name: '',
     description: '',
     street: '',     // Full street address (e.g., '123 Main St')
     unit: '',
@@ -243,7 +243,7 @@ const RegisterGarageSale = () => {
       }
       
       const saleData = {
-        name: formData.name || "",
+        name: formData.name.trim() || "Garage Sale",
         description: formData.description || "",
         address: {
           streetNum: streetNum,
