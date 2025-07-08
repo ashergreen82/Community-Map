@@ -589,6 +589,11 @@ const RegisterGarageSale = () => {
         </div> */}
         {existingSale && !isEditing ? '' : 'Register a Garage Sale'}
       </h1>
+      {!existingSale || isEditing ? (
+        <p className="subheading" style={{ marginTop: '0.5rem', color: '#666' }}>
+          (If you want to register more than one garage sale then please use the "Manage Community Sales" Page)
+        </p>
+      ) : null}
       
       {loading && <div className="loading">Loading...</div>}
       
