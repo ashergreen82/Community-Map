@@ -39,3 +39,8 @@ backend/.env
 
 # Markdown preview files
 markdown-preview.html
+
+# Test coverage reports
+coverage
+client/coverage
+*.lcov

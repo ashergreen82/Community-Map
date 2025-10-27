@@ -1,0 +1,67 @@
+import { expect, afterEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+
+// Cleanup after each test case
+afterEach(() => {
+  cleanup();
+});
+
+// Mock environment variables
+vi.mock('import.meta', () => ({
+  env: {
+    VITE_GOOGLE_MAPS_API_KEY: 'test-google-maps-key',
+    VITE_SESSION_API_URL: 'http://localhost:3000/session-api',
+    VITE_MAPS_API_URL: 'http://localhost:3000/maps-api',
+    VITE_AUTH_API_URL: 'http://localhost:3000/auth-api',
+    VITE_CUSTOMER_API_URL: 'http://localhost:3000/customer-api',
+    VITE_APP_SESSION_KEY: 'test-session-key',
+    VITE_APP_API_KEY: 'test-api-key',
+    VITE_COMMUNITYMAP_API_URL: 'http://localhost:5173',
+    VITE_REDIRECT_URI: 'http://localhost:5173/loginRedirect'
+  }
+}));
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+global.localStorage = localStorageMock;
+
+// Mock sessionStorage
+const sessionStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+global.sessionStorage = sessionStorageMock;
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// Mock IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  takeRecords() {
+    return [];
+  }
+  unobserve() {}
+};
