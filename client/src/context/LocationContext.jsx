@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { logger } from '../utils/logger';
 
 const LocationContext = createContext();
 
@@ -19,14 +20,14 @@ export function LocationProvider({ children }) {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
-        console.log('User location obtained:', pos);
+        logger.log('[LocationContext] User location obtained:', pos);
         setUserLocation(pos);
         setShouldCenterOnUser(true);
         setError(null);
       },
       (error) => {
         setError(`Error getting location: ${error.message}`);
-        console.warn('Error getting location:', error);
+        logger.warn('[LocationContext] Error getting location:', error);
       },
       {
         enableHighAccuracy: true,
@@ -42,7 +43,7 @@ export function LocationProvider({ children }) {
 
   // Get initial location when component mounts
   useEffect(() => {
-    console.log('LocationContext: Getting initial location');
+    logger.log('[LocationContext] Getting initial location');
     centerOnUserLocation();
   }, [centerOnUserLocation]);
 
