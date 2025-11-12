@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from './logger';
 
 // Track processed Google auth codes to prevent duplicate requests
 const processedAuthCodes = new Set();
@@ -63,7 +64,7 @@ const userInformationApi = axios.create({
 
 // Add response interceptor to handle errors
 const errorInterceptor = error => {
-  console.error('🔴 API Error Details:', {
+  logger.error('[api] 🔴 API Error Details:', {
     // Request details
     request: {
       url: error.config?.url,
@@ -91,7 +92,7 @@ const errorInterceptor = error => {
   });
   
   // Log the request headers that were actually sent
-  console.log('📨 Request Headers:', {
+  logger.log('[api] 📨 Request Headers:', {
     contentType: error.config?.headers['Content-Type'],
     appName: error.config?.headers['app-name'],
     appKey: error.config?.headers['app-key'] ? '[PRESENT]' : '[MISSING]',
@@ -104,7 +105,7 @@ const errorInterceptor = error => {
 // Add request interceptor to log headers
 const requestInterceptor = async config => {
   const currentSessionId = localStorage.getItem('sessionId');
-  console.log('Current session ID before request:', currentSessionId);
+  logger.log('[api] Current session ID before request:', currentSessionId);
   
   // Ensure headers object exists
   config.headers = config.headers || {};
@@ -112,12 +113,12 @@ const requestInterceptor = async config => {
   // Add session ID if it exists
   if (currentSessionId) {
     config.headers['sessionId'] = currentSessionId;
-    console.log('Added session ID to request headers');
+    logger.log('[api] Added session ID to request headers');
   } else {
-    console.log('No session ID available for request');
+    logger.log('[api] No session ID available for request');
   }
   
-  console.log('Final request config:', {
+  logger.log('[api] Final request config:', {
     url: config.url,
     method: config.method,
     headers: {
@@ -143,10 +144,10 @@ mapsApi.interceptors.request.use(requestInterceptor);
 // Create a new session
 const createSession = async () => {
   try {
-    console.log('Creating new session...');
-    console.log('Previous sessionId in localStorage:', localStorage.getItem('sessionId'));
+    logger.log('[api] Creating new session...');
+    logger.log('[api] Previous sessionId in localStorage:', localStorage.getItem('sessionId'));
     const response = await sessionApi.post('/createSession');
-    console.log('Create session raw response:', response);
+    logger.log('[api] Create session raw response:', response);
     
     if (!response.data) {
       throw new Error('No response data received from createSession');
@@ -156,24 +157,24 @@ const createSession = async () => {
     const sessionData = response.data.data || response.data;
     
     if (!sessionData) {
-      console.error('Invalid response structure:', response.data);
+      logger.error('[api] Invalid response structure:', response.data);
       throw new Error('No session data in response');
     }
 
     const sessionId = sessionData.sessionId || sessionData.sessionID; //updated the OR to include ID rahter than Id again (was duplicated)
     
     if (!sessionId) {
-      console.error('Invalid session data structure:', sessionData);
+      logger.error('[api] Invalid session data structure:', sessionData);
       throw new Error('No sessionId in response data');
     }
 
-    console.log('New session data:', sessionData);
-    console.log('Setting new sessionId in localStorage:', sessionId);
+    logger.log('[api] New session data:', sessionData);
+    logger.log('[api] Setting new sessionId in localStorage:', sessionId);
     // sessionStorage.setItem('sessionId', sessionId);// Line 171 in api.js
     localStorage.setItem('sessionId', sessionId);
     return sessionId;
   } catch (error) {
-    console.error('Error creating session:', {
+    logger.error('[api] Error creating session:', {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
@@ -191,12 +192,12 @@ const createSession = async () => {
 // Verify session is valid
 const verifySession = async (sessionId) => {
   try {
-    console.log('Verifying session:', sessionId);
+    logger.log('[api] Verifying session:', sessionId);
     const response = await sessionApi.get(`/getSessionDetailsById/${sessionId}`);
-    console.log('Session verification response:', response);
+    logger.log('[api] Session verification response:', response);
     return true;
   } catch (error) {
-    console.error('Session verification failed:', error);
+    logger.error('[api] Session verification failed:', error);
     return false;
   }
 };
@@ -205,13 +206,13 @@ const verifySession = async (sessionId) => {
 const getSessionId = async () => {
   const storedSessionId = localStorage.getItem('sessionId');
   if (storedSessionId) {
-    console.log('Found stored session:', storedSessionId);
+    logger.log('[api] Found stored session:', storedSessionId);
     const isValid = await verifySession(storedSessionId);
     if (isValid) {
-      console.log('Stored session is valid');
+      logger.log('[api] Stored session is valid');
       return storedSessionId;
     }
-    console.log('Stored session is invalid, creating new one...');
+    logger.log('[api] Stored session is invalid, creating new one...');
     localStorage.removeItem('sessionId');
   }
   return await createSession();
@@ -220,20 +221,20 @@ const getSessionId = async () => {
 // Custom get method for addresses - defaults to Bay Ridges Community Sales if no ID provided
 const getAddresses = async (communityId = 'eef06da4-788b-435b-8f84-9467dd5b89a9') => {
   try {
-    console.log('API: Starting getAddresses call...');
+    logger.log('[api] Starting getAddresses call...');
     
     // Ensure we have a valid session
-    console.log('API: Getting session ID...');
+    logger.log('[api] Getting session ID...');
     await getSessionId(); // This will create or verify the session
     
     // Make the request - sessionId will be added by interceptor
-    console.log(`API: Making request to /getAddressByCommunity/${communityId}...`);
+    logger.log(`[api] Making request to /getAddressByCommunity/${communityId}...`);
     const response = await mapsApi.get(`/v1/getAddressByCommunity/${communityId}`);
     
-    console.log('API: Successful response from backend:', response);
+    logger.log('[api] Successful response from backend:', response);
     return response;
   } catch (error) {
-    console.error('API Error in getAddresses:', {
+    logger.error('[api] Error in getAddresses:', {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
@@ -251,20 +252,20 @@ const getAddresses = async (communityId = 'eef06da4-788b-435b-8f84-9467dd5b89a9'
 // Get addresses for a specific community
 const getAddressesByCommunity = async (communityId) => {
   try {
-    console.log(`API: Starting getAddressesByCommunity call for community ${communityId}...`);
+    logger.log(`[api] Starting getAddressesByCommunity call for community ${communityId}...`);
     
     // Ensure we have a valid session
-    console.log('API: Getting session ID...');
+    logger.log('[api] Getting session ID...');
     await getSessionId(); // This will create or verify the session
     
     // Make the request - sessionId will be added by interceptor
-    console.log(`API: Making request to /getAddressByCommunity/${communityId}...`);
+    logger.log(`[api] Making request to /getAddressByCommunity/${communityId}...`);
     const response = await mapsApi.get(`/v1/getAddressByCommunity/${communityId}`);
     
-    console.log('API: Successful response from backend:', response);
+    logger.log('[api] Successful response from backend:', response);
     return response;
   } catch (error) {
-    console.error(`API Error in getAddressesByCommunity for community ${communityId}:`, {
+    logger.error(`[api] Error in getAddressesByCommunity for community ${communityId}:`, {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
@@ -282,16 +283,16 @@ const getAddressesByCommunity = async (communityId) => {
 // Get user information by email
 async function getUserInfo(email) {
   try {
-    console.log('Getting user info for email:', email);
+    logger.log('[api] Getting user info for email:', email);
     
     // Ensure we have a valid session
     const sessionId = await getSessionId();
-    console.log('Using session ID for user info request:', sessionId);
+    logger.log('[api] Using session ID for user info request:', sessionId);
     
     // Make the request
-    console.log('Making user info request...');
+    logger.log('[api] Making user info request...');
     const response = await userInformationApi.get(email);
-    console.log('User info response:', response);
+    logger.log('[api] User info response:', response);
     
     // Get the raw data
     let userData = response.data;
@@ -310,10 +311,10 @@ async function getUserInfo(email) {
       email: userData.email || email
     };
     
-    console.log('Normalized user data:', normalizedUserData);
+    logger.log('[api] Normalized user data:', normalizedUserData);
     return normalizedUserData;
   } catch (error) {
-    console.error('Error fetching user information:', error);
+    logger.error('[api] Error fetching user information:', error);
     throw error;
   }
 }
@@ -322,7 +323,7 @@ async function getUserInfo(email) {
 const createGarageSale = async (saleData) => {
   try {
     const sessionId = await getSessionId();
-    console.log('Sending sale data to API:', JSON.stringify(saleData, null, 2));
+    logger.log('[api] Sending sale data to API:', JSON.stringify(saleData, null, 2));
     
     const response = await mapsApi.post('/v1/createAddress', saleData, {
       headers: {
@@ -332,7 +333,7 @@ const createGarageSale = async (saleData) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Create garage sale error:', {
+    logger.error('[api] Create garage sale error:', {
       message: error.message,
       response: error.response?.data,
       status: error.response?.status,
@@ -367,7 +368,7 @@ const getUserGarageSale = async (userId) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Get user garage sale error:', error);
+    logger.error('[api] Get user garage sale error:', error);
     throw error;
   }
 };
@@ -380,7 +381,7 @@ const deleteGarageSale = async (saleIds) => {
     // Handle both single ID and array of IDs
     const idsToDelete = Array.isArray(saleIds) ? saleIds : [saleIds];
     
-    console.log('API: Deleting garage sales with IDs:', idsToDelete);
+    logger.log('[api] Deleting garage sales with IDs:', idsToDelete);
     
     const response = await mapsApi.delete('/v1/deleteAddress', {
       headers: {
@@ -390,10 +391,10 @@ const deleteGarageSale = async (saleIds) => {
       data: idsToDelete
     });
     
-    console.log('API: Delete response:', response);
+    logger.log('[api] Delete response:', response);
     return response.data;
   } catch (error) {
-    console.error('Delete garage sale error:', {
+    logger.error('[api] Delete garage sale error:', {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
@@ -408,7 +409,7 @@ const deleteCommunitySale = async (saleId) => {
   try {
     const currentSessionId = await getSessionId();
     
-    console.log('API: Deleting community sale with ID:', saleId);
+    logger.log('[api] Deleting community sale with ID:', saleId);
     
     const response = await mapsApi.delete(`/v1/communitySales/delete/${saleId}`, {
       headers: {
@@ -419,7 +420,7 @@ const deleteCommunitySale = async (saleId) => {
       }
     });
     
-    console.log('API: Delete community sale response:', response);
+    logger.log('[api] Delete community sale response:', response);
     
     // Backend returns 'true' for successful deletion, 'null' if not deleted or not found
     if (response.data === true) {
@@ -428,11 +429,11 @@ const deleteCommunitySale = async (saleId) => {
       throw new Error('Community sale could not be deleted or was not found');
     } else {
       // Handle any other unexpected response
-      console.warn('Unexpected response format from delete community sale:', response.data);
+      logger.warn('[api] Unexpected response format from delete community sale:', response.data);
       return response.data;
     }
   } catch (error) {
-    console.error('Delete community sale error:', {
+    logger.error('[api] Delete community sale error:', {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
@@ -445,7 +446,7 @@ const deleteCommunitySale = async (saleId) => {
 // Get user's saved address list
 const getUserAddressList = async (userId) => {
   try {
-    console.log('Fetching user address list for userId:', userId);
+    logger.log('[api] Fetching user address list for userId:', userId);
     const sessionId = await getSessionId();
     
     const response = await mapsApi.get(`/v1/userAddressList/getUserAddressList/${userId}`, {
@@ -454,10 +455,10 @@ const getUserAddressList = async (userId) => {
       }
     });
     
-    console.log('User address list response:', response);
+    logger.log('[api] User address list response:', response);
     return response.data;
   } catch (error) {
-    console.error('Error fetching user address list:', error);
+    logger.error('[api] Error fetching user address list:', error);
     
     // If the error is a 404, it means the user doesn't have a saved list
     if (error.response?.status === 404) {
@@ -485,10 +486,10 @@ const updateGarageSale = async (saleId, updateData) => {
       }
     });
     
-    console.log('Updated garage sale:', response.data);
+    logger.log('[api] Updated garage sale:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error updating garage sale:', error);
+    logger.error('[api] Error updating garage sale:', error);
     throw error;
   }
 };
@@ -498,7 +499,7 @@ const register = async (userEmail, password, firstName, lastName) => {
   try {
     // First create a session
     const sessionResponse = await createSession();
-    console.log('Current session ID before request:', sessionResponse);
+    logger.log('[api] Current session ID before request:', sessionResponse);
     
     // Prepare the request body to match the exact format from curl
     const requestBody = {
@@ -511,7 +512,7 @@ const register = async (userEmail, password, firstName, lastName) => {
     };
 
     // Log complete request details
-    console.log('Registration Request Details:', {
+    logger.log('[api] Registration Request Details:', {
       method: 'POST',
       url: createCustomerApi.defaults.baseURL + '/v1/createCustomer',
       headers: {
@@ -529,7 +530,7 @@ const register = async (userEmail, password, firstName, lastName) => {
         }
       });
     
-      console.log('Registration Response Details:', {
+      logger.log('[api] Registration Response Details:', {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
@@ -544,7 +545,7 @@ const register = async (userEmail, password, firstName, lastName) => {
         return response.data;
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('[api] Registration error:', error);
 
       if (error.response?.status === 400) {
         // display a modal with the error message
@@ -555,7 +556,7 @@ const register = async (userEmail, password, firstName, lastName) => {
     }
     throw new Error('Registration failed: ' + response.statusText);
   } catch (error) {
-    console.error('Registration Error Details:', {
+    logger.error('[api] Registration Error Details:', {
       name: error.name,
       message: error.message,
       status: error.response?.status,
@@ -576,7 +577,7 @@ const login = async (email, password) => {
   try {
     // First ensure we have a valid session
     const sessionId = await getSessionId();
-    console.log('Created/Retrieved session for login:', sessionId);
+    logger.log('[api] Created/Retrieved session for login:', sessionId);
     
     // Create form data
     const formData = new URLSearchParams();
@@ -584,7 +585,7 @@ const login = async (email, password) => {
     formData.append('password', password);
     formData.append('type', 'EMAIL');
 
-    console.log('Sending login request with sessionId:', sessionId);
+    logger.log('[api] Sending login request with sessionId:', sessionId);
     
     // Create temporary headers with sessionId for this request
     const headers = { 
@@ -598,7 +599,7 @@ const login = async (email, password) => {
     const authApiUrl = import.meta.env.VITE_AUTH_API_URL || 'https://br-auth-api-dev001-207215937730.us-central1.run.app';
     const fullLoginUrl = `${authApiUrl}/login`;
     
-    console.log('API Login Request Details:', {
+    logger.log('[api] Login Request Details:', {
       url: fullLoginUrl,
       method: 'POST',
       headers: headers,
@@ -615,9 +616,9 @@ const login = async (email, password) => {
     
     // Check if the response is successful
     if (!fetchResponse.ok) {
-      console.error('Login failed with status:', fetchResponse.status);
+      logger.error('[api] Login failed with status:', fetchResponse.status);
       const errorText = await fetchResponse.text();
-      console.error('Error response:', errorText);
+      logger.error('[api] Error response:', errorText);
       throw new Error(`Login failed with status ${fetchResponse.status}: ${errorText}`);
     }
     
@@ -632,15 +633,15 @@ const login = async (email, password) => {
       response = { data: responseData === 'true' };
     }
     
-    console.log('Login response:', response);
+    logger.log('[api] Login response:', response);
     
     // Check if login was successful
     if (response.data === true || response.data.success === true) {
-      console.log('Login successful, fetching user info');
+      logger.log('[api] Login successful, fetching user info');
       
       // Ensure we have email (the parameter passed to this function)
       if (!email) {
-        console.error('Email is undefined during login process');
+        logger.error('[api] Email is undefined during login process');
         throw new Error('Email is required for user information retrieval');
       }
       
@@ -658,7 +659,7 @@ const login = async (email, password) => {
           }
         };
       } catch (userInfoError) {
-        console.error('Error fetching user info after successful login:', userInfoError);
+        logger.error('[api] Error fetching user info after successful login:', userInfoError);
         // Still return a successful login but with minimal user info
         return {
           data: {
@@ -672,7 +673,7 @@ const login = async (email, password) => {
     }
     throw new Error('Invalid login response');
   } catch (error) {
-    console.error('Login error:', {
+    logger.error('[api] Login error:', {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
@@ -705,7 +706,7 @@ const logout = async () => {
       localStorage.removeItem('sessionId');
     }
   } catch (error) {
-    console.error('Logout error:', error);
+    logger.error('[api] Logout error:', error);
     // Still remove the session ID even if the server call fails
     localStorage.removeItem('sessionId');
     throw error;
@@ -717,7 +718,7 @@ const requestPasswordReset = async (email) => {
   try {
     // Get or create session ID
     const sessionId = await getSessionId();
-    console.log('Using session for password reset request:', sessionId);
+    logger.log('[api] Using session for password reset request:', sessionId);
     
     const response = await authApi.post('/sendResetEmail', { 
       userEmail: email
@@ -726,10 +727,10 @@ const requestPasswordReset = async (email) => {
         sessionId: sessionId
       }
     });
-    console.log('Password reset email sent successfully');
+    logger.log('[api] Password reset email sent successfully');
     return response.data;
   } catch (error) {
-    console.error('Password reset request error:', error);
+    logger.error('[api] Password reset request error:', error);
     if (error.response && error.response.status === 404) {
       throw new Error('Password reset service unavailable. Please try again later.');
     }
@@ -742,10 +743,10 @@ const requestPasswordReset = async (email) => {
 const verifyResetToken = async (token) => {
   try {
     // Just return success since verification happens when resetting the password
-    console.log('Token will be verified during password reset');
+    logger.log('[api] Token will be verified during password reset');
     return { valid: true };
   } catch (error) {
-    console.error('Token verification error:', error);
+    logger.error('[api] Token verification error:', error);
     throw new Error('Failed to verify reset token. Please try again.');
   }
 };
@@ -755,8 +756,8 @@ const resetPassword = async (token, newPassword, userEmail) => {
   try {
     // Get or create session ID
     const sessionId = await getSessionId();
-    console.log('Using session for password reset:', sessionId);
-    console.log('Headers being sent to the backend:', {
+    logger.log('[api] Using session for password reset:', sessionId);
+    logger.log('[api] Headers being sent to the backend:', {
       sessionId: sessionId,
       token,
       userEmail,
@@ -774,11 +775,11 @@ const resetPassword = async (token, newPassword, userEmail) => {
         sessionId: sessionId
       }
     });
-    console.log('Server response from password reset:', response);
-    console.log('Password reset successful');
+    logger.log('[api] Server response from password reset:', response);
+    logger.log('[api] Password reset successful');
     return response.data;
   } catch (error) {
-    console.error('Password reset error:', error);
+    logger.error('[api] Password reset error:', error);
     if (error.response && error.response.status === 400) {
       throw new Error('Invalid token or password requirements not met. Please try again.');
     }
@@ -805,7 +806,7 @@ const api = {
   // Create or update user's saved address list
   createUpdateUserAddressList: async (userId, addressList, community = 'eef06da4-788b-435b-8f84-9467dd5b89a9') => {
     try {
-      console.log('Saving user address list for user:', userId);
+      logger.log('[api] Saving user address list for user:', userId);
       const sessionId = await getSessionId();
       
       const payload = {
@@ -815,7 +816,7 @@ const api = {
       };
       
       // Using mapsApi instead of createCustomerApi to use VITE_MAPS_API_URL
-      console.log('Saving user address list payload:', payload);
+      logger.log('[api] Saving user address list payload:', payload);
       
       // Ensure headers match exactly what's in the CURL example
       const response = await mapsApi.post('/v1/userAddressList/createUpdateUserAddressList', payload, {
@@ -827,10 +828,10 @@ const api = {
         }
       });
       
-      console.log('User address list saved successfully:', response.data);
+      logger.log('[api] User address list saved successfully:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error saving user address list:', error);
+      logger.error('[api] Error saving user address list:', error);
       throw error;
     }
   },
@@ -849,14 +850,14 @@ const api = {
       // Construct the Google OAuth URL
       const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=${encodeURIComponent(responseType)}`;
       
-      console.log('Redirecting to Google OAuth:', authUrl);
+      logger.log('[api] Redirecting to Google OAuth:', authUrl);
       
       // Redirect the user to Google login
       window.location.href = authUrl;
       
       return { success: true };
     } catch (error) {
-      console.error('Error initiating Google login:', error);
+      logger.error('[api] Error initiating Google login:', error);
       throw error;
     }
   },
@@ -867,7 +868,7 @@ const api = {
     try {
       // Check if this code has already been processed
       if (processedAuthCodes.has(code)) {
-        console.log('This authorization code has already been processed, preventing duplicate request');
+        logger.log('[api] This authorization code has already been processed, preventing duplicate request');
         
         // Instead of returning minimal data, retrieve the user info from localStorage
         const storedUserInfo = localStorage.getItem('userInfo');
@@ -877,10 +878,10 @@ const api = {
           try {
             // Parse the stored user info
             const userData = JSON.parse(storedUserInfo);
-            console.log('Using stored user data from localStorage:', userData);
+            logger.log('[api] Using stored user data from localStorage:', userData);
             return { success: true, user: userData };
           } catch (e) {
-            console.error('Error parsing stored user info:', e);
+            logger.error('[api] Error parsing stored user info:', e);
           }
         }
         
@@ -892,7 +893,7 @@ const api = {
         }
         
         // As a last resort, clear the processed codes set to force a fresh login
-        console.log('No valid user data found in localStorage, clearing processed codes');
+        logger.log('[api] No valid user data found in localStorage, clearing processed codes');
         processedAuthCodes.clear();
       }
       
@@ -901,11 +902,11 @@ const api = {
       
       // Get or create session ID
       const sessionId = await getSessionId();
-      console.log('Using session for Google SSO:', sessionId);
+      logger.log('[api] Using session for Google SSO:', sessionId);
       
       // Send the authorization code to the backend
-      console.log('🔐 Google authorization code received:', code);
-      console.log('Sending auth code to backend for token exchange');
+      logger.log('[api] 🔐 Google authorization code received:', code);
+      logger.log('[api] Sending auth code to backend for token exchange');
       
       const response = await authApi.post('/login', {
         token: code,
@@ -921,7 +922,7 @@ const api = {
       });
       
       // The backend should exchange the code for tokens and return user info
-      console.log('Google authentication successful');
+      logger.log('[api] Google authentication successful');
       
       if (!response.data || !response.data.success) {
         // If request fails, remove the code from processed set so it can be tried again
@@ -943,7 +944,7 @@ const api = {
         throw new Error('No email found in Google authentication response');
       }
       
-      console.log('Retrieved email from SSO:', email);
+      logger.log('[api] Retrieved email from SSO:', email);
       
       // Extract any available name information from the response
       let firstName = '';
@@ -961,11 +962,11 @@ const api = {
       let userData;
       try {
         // Fetch complete user information using the email
-        console.log('Making separate backend call for complete user information...');
+        logger.log('[api] Making separate backend call for complete user information...');
         userData = await getUserInfo(email); // This function already normalizes the data
-        console.log('Complete user info retrieved successfully:', userData);
+        logger.log('[api] Complete user info retrieved successfully:', userData);
       } catch (userInfoError) {
-        console.error('Failed to retrieve user info from backend:', userInfoError);
+        logger.error('[api] Failed to retrieve user info from backend:', userInfoError);
         
         // Create a comprehensive fallback user object
         userData = {
@@ -981,7 +982,7 @@ const api = {
           id: `google-${email}`
         };
         
-        console.log('Using fallback user data for hamburger menu display:', userData);
+        logger.log('[api] Using fallback user data for hamburger menu display:', userData);
       }
       
       // Final verification to ensure required fields exist
@@ -997,14 +998,14 @@ const api = {
         userData.email = email;
       }
       
-      console.log('Final normalized user data for UI display:', userData);
+      logger.log('[api] Final normalized user data for UI display:', userData);
       
       return {
         success: true,
         user: userData
       };
     } catch (error) {
-      console.error('Error handling Google callback:', error);
+      logger.error('[api] Error handling Google callback:', error);
       if (error.response && error.response.status === 400) {
         throw new Error('Invalid authorization code. Please try logging in again.');
       } else if (error.response && error.response.status === 404) {

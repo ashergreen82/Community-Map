@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import api from '../utils/api';
+import { logger } from '../utils/logger';
 
 const GarageSalesContext = createContext();
 
@@ -11,11 +12,11 @@ export function GarageSalesProvider({ children }) {
   const initialFetchDoneRef = useRef(false);
   
   useEffect(() => {
-    console.log('GarageSalesContext: Provider mounted');
+    logger.log('[GarageSalesContext] Provider mounted');
     // Initial fetch will be triggered by components as needed
     
     return () => {
-      console.log('GarageSalesContext: Provider unmounted');
+      logger.log('[GarageSalesContext] Provider unmounted');
     };
   }, []);
 
@@ -24,7 +25,7 @@ export function GarageSalesProvider({ children }) {
 
   const fetchGarageSales = useCallback(async (communityId = null, forceRefresh = false) => {
     if (fetchInProgressRef.current) {
-      console.log('GarageSalesContext: Fetch already in progress');
+      logger.log('[GarageSalesContext] Fetch already in progress');
       return;
     }
 
@@ -34,18 +35,18 @@ export function GarageSalesProvider({ children }) {
     const communityChanged = communityId && communityId !== lastFetchedCommunityIdRef.current;
     
     if (initialFetchDoneRef.current && !forceRefresh && !communityChanged) {
-      console.log('GarageSalesContext: Skipping fetch - no changes detected');
+      logger.log('[GarageSalesContext] Skipping fetch - no changes detected');
       return;
     }
     
     // Update the last fetched community ID reference
     if (communityId) {
-      console.log('GarageSalesContext: Updating lastFetchedCommunityId from', lastFetchedCommunityIdRef.current, 'to', communityId);
+      logger.log('[GarageSalesContext] Updating lastFetchedCommunityId from', lastFetchedCommunityIdRef.current, 'to', communityId);
       lastFetchedCommunityIdRef.current = communityId;
     }
 
     try {
-      console.log('GarageSalesContext: Starting fetch');
+      logger.log('[GarageSalesContext] Starting fetch');
       fetchInProgressRef.current = true;
       setLoading(true);
       setError(null);
@@ -56,16 +57,16 @@ export function GarageSalesProvider({ children }) {
         ? await api.getAddressesByCommunity(communityId)
         : await api.getAddresses();
       
-      console.warn('GarageSalesContext: Fetching with communityId:', communityId);
-      console.log('GarageSalesContext: Raw API response:', JSON.stringify(response));
+      logger.warn('[GarageSalesContext] Fetching with communityId:', communityId);
+      logger.log('[GarageSalesContext] Raw API response:', JSON.stringify(response));
       
       // Handle case where response.data is false instead of an empty array
       if (response && response.data === false) {
-        console.log('GarageSalesContext: Response data is false, converting to empty array');
+        logger.log('[GarageSalesContext] Response data is false, converting to empty array');
         response.data = [];
       }
       
-      console.log('GarageSalesContext: Response data structure:', JSON.stringify(response.data?.[0], null, 2));
+      logger.log('[GarageSalesContext] Response data structure:', JSON.stringify(response.data?.[0], null, 2));
 
       if (response && response.data) {
         const processedData = response.data.map(sale => {
@@ -80,7 +81,7 @@ export function GarageSalesProvider({ children }) {
           };
 
           // Log position data for debugging
-          console.log('Processing sale position:', {
+          logger.log('[GarageSalesContext] Processing sale position:', {
             originalAddress: sale.address,
             processedPosition: position
           });
@@ -99,10 +100,10 @@ export function GarageSalesProvider({ children }) {
 
         setGarageSales(processedData);
         initialFetchDoneRef.current = true;
-        console.log('GarageSalesContext: Fetch completed successfully');
+        logger.log('[GarageSalesContext] Fetch completed successfully');
       }
     } catch (err) {
-      console.error('GarageSalesContext: Error fetching garage sales:', err);
+      logger.error('[GarageSalesContext] Error fetching garage sales:', err);
       setError(err.message);
     } finally {
       setLoading(false);
