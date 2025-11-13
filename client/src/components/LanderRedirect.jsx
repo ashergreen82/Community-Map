@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { logger } from '../utils/logger';
 
 /**
  * LanderRedirect component
@@ -19,7 +20,7 @@ const LanderRedirect = () => {
     const queryParams = new URLSearchParams(location.search);
     
     // Log the redirect for debugging
-    console.log('LanderRedirect: Redirecting from /lander to / with params:', 
+    logger.log('[LanderRedirect] Redirecting from /lander to / with params:', 
       Object.fromEntries(queryParams.entries()));
     
     // Redirect to the root route with the same query parameters

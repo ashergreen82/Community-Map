@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { logger } from '../utils/logger';
 
 const InitialPageContext = createContext();
 
@@ -20,14 +21,14 @@ export const InitialPageProvider = ({ children }) => {
       // If we have a stored initial page, use it
       setInitialPath(storedInitialPage);
       setInitialPathSet(true);
-      console.log(`[InitialPageContext] Restored initial page from session: ${storedInitialPage}`);
+      logger.log(`[InitialPageContext] Restored initial page from session: ${storedInitialPage}`);
     } else if (!initialPathSet) {
       // Otherwise, use the current path as the initial page
       setInitialPath(location.pathname);
       setInitialPathSet(true);
       // Store in sessionStorage for persistence during redirects
       sessionStorage.setItem(SESSION_INITIAL_PAGE_KEY, location.pathname);
-      console.log(`[InitialPageContext] First page recorded in memory and session: ${location.pathname}`);
+      logger.log(`[InitialPageContext] First page recorded in memory and session: ${location.pathname}`);
     }
   }, [location.pathname, initialPathSet]);
 
@@ -43,12 +44,12 @@ export const InitialPageProvider = ({ children }) => {
 
   // Debug function to log the current initial page information
   const debugInitialPage = () => {
-    console.log('===== INITIAL PAGE CONTEXT DEBUG INFO =====');
-    console.log(`Current initial page in memory: ${initialPath || 'Not set'}`);
-    console.log(`Current initial page in session: ${sessionStorage.getItem(SESSION_INITIAL_PAGE_KEY) || 'Not set'}`);
-    console.log(`Is initial page map? ${wasInitialPageMap() ? 'YES' : 'NO'}`);
-    console.log(`Is initial page about/landing? ${wasInitialPageAbout() ? 'YES' : 'NO'}`);
-    console.log('=========================================');
+    logger.log('[InitialPageContext] ===== DEBUG INFO =====');
+    logger.log(`[InitialPageContext] Current initial page in memory: ${initialPath || 'Not set'}`);
+    logger.log(`[InitialPageContext] Current initial page in session: ${sessionStorage.getItem(SESSION_INITIAL_PAGE_KEY) || 'Not set'}`);
+    logger.log(`[InitialPageContext] Is initial page map? ${wasInitialPageMap() ? 'YES' : 'NO'}`);
+    logger.log(`[InitialPageContext] Is initial page about/landing? ${wasInitialPageAbout() ? 'YES' : 'NO'}`);
+    logger.log('[InitialPageContext] =========================================');
   };
   
   // Function to clear the initial page (useful for testing)
@@ -56,7 +57,7 @@ export const InitialPageProvider = ({ children }) => {
     setInitialPath(null);
     setInitialPathSet(false);
     sessionStorage.removeItem(SESSION_INITIAL_PAGE_KEY);
-    console.log('[InitialPageContext] Initial page cleared from memory and session');
+    logger.log('[InitialPageContext] Initial page cleared from memory and session');
   };
 
   return (

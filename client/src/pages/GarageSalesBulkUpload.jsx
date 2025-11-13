@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import './GarageSalesBulkUpload.css';
+import { logger } from '../utils/logger';
 
 const GarageSalesBulkUpload = () => {
   const [communityId, setCommunityId] = useState('');
@@ -43,7 +44,7 @@ const GarageSalesBulkUpload = () => {
         setCommunityName('');
       }
     } catch (error) {
-      console.error('Error fetching community name:', error);
+      logger.error('[GarageSalesBulkUpload] Error fetching community name:', error);
       setCommunityName('');
     }
   };
@@ -127,7 +128,7 @@ const GarageSalesBulkUpload = () => {
           })));
           
         } catch (error) {
-          console.error('Error processing JSON:', error);
+          logger.error('[GarageSalesBulkUpload] Error processing JSON:', error);
           setErrors([{ address: 'N/A', error: `Error processing JSON file: ${error.message}` }]);
         } finally {
           setIsUploading(false);
@@ -142,7 +143,7 @@ const GarageSalesBulkUpload = () => {
       fileReader.readAsText(file);
       
     } catch (error) {
-      console.error('Error during upload:', error);
+      logger.error('[GarageSalesBulkUpload] Error during upload:', error);
       setErrors([{ address: 'N/A', error: `Error during upload: ${error.message}` }]);
       setIsUploading(false);
     }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNavigation } from '../context/NavigationContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
 import './Info.css';
+import { logger } from '../utils/logger';
 
 const InfoPage = () => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ const InfoPage = () => {
   useEffect(() => {
     // Store the initial page in sessionStorage
     sessionStorage.setItem('initialPage', '/about');
-    console.log('InfoPage: Recorded initial page as "/about" in sessionStorage');
+    logger.log('[Info] Recorded initial page as "/about" in sessionStorage');
   }, []);
   return (
     <div className="info-page">

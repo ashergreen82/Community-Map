@@ -10,6 +10,7 @@ import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
 import api from '../utils/api';
 import styles from './GarageSalesAdmin.module.css';
 import CommunityQRCode from '../components/CommunityQRCode';
+import { logger } from '../utils/logger';
 
 const GarageSalesAdmin = () => {
   const {
@@ -28,7 +29,7 @@ const GarageSalesAdmin = () => {
   // State for query param only
   const queryParams = new URLSearchParams(location.search);
   const id = queryParams.get('communityId');
-  console.warn('GarageSalesAdmin: Extracted communityId from URL:', id);
+  logger.warn('[GarageSalesAdmin] Extracted communityId from URL:', id);
   // Use only context variables for communityId and communityName
   // If you need to update them, use the context setters
   // Remove local state to avoid redeclaration errors
@@ -57,12 +58,12 @@ const GarageSalesAdmin = () => {
 
   // Update state when context or URL parameters change
   useEffect(() => {
-    console.log('GarageSalesAdmin: Context values:', { communityName, communityId });
+    logger.log('[GarageSalesAdmin] Context values:', { communityName, communityId });
     
     // Get communityId from URL or context
     const newId = queryParams.get('communityId') || communityId;
     if (newId && newId !== communityId) {
-      console.log('GarageSalesAdmin: Community ID changed, updating context:', newId);
+      logger.log('[GarageSalesAdmin] Community ID changed, updating context:', newId);
       if (typeof setCommunityId === 'function') setCommunityId(newId);
       // Reset selections when community changes
       setAdminSelectedSales(new Set());
@@ -75,7 +76,7 @@ const GarageSalesAdmin = () => {
   useEffect(() => {
     // Only fetch community name if it's not already available in the context
     if (!communityName && communityId && typeof setCommunityName === 'function') {
-      console.log('GarageSalesAdmin: Community name not in context, fetching from API');
+      logger.log('[GarageSalesAdmin] Community name not in context, fetching from API');
       // Fetch community name based on ID
       const fetchCommunityName = async () => {
         try {
@@ -92,12 +93,12 @@ const GarageSalesAdmin = () => {
             setCommunityName(data.name || 'Community Sale');
           }
         } catch (error) {
-          console.error('Error fetching community name:', error);
+          logger.error('[GarageSalesAdmin] Error fetching community name:', error);
         }
       };
       fetchCommunityName();
     } else if (communityName) {
-      console.log('GarageSalesAdmin: Using community name from context:', communityName);
+      logger.log('[GarageSalesAdmin] Using community name from context:', communityName);
     }
   }, [communityId, communityName]);
   
@@ -108,7 +109,7 @@ const GarageSalesAdmin = () => {
       try {
         setAdminSelectedSales(new Set(JSON.parse(savedAdminSelections)));
       } catch (error) {
-        console.error('Error parsing admin selections:', error);
+        logger.error('[GarageSalesAdmin] Error parsing admin selections:', error);
       }
     }
   }, []);
@@ -123,7 +124,7 @@ const GarageSalesAdmin = () => {
   // Refresh garage sales data when component mounts or communityId changes
   useEffect(() => {
     if (communityId) {
-      console.log('GarageSalesAdmin: Fetching garage sales for communityId:', communityId);
+      logger.log('[GarageSalesAdmin] Fetching garage sales for communityId:', communityId);
       // Always force a refresh when the communityId changes
       fetchGarageSales(communityId, true);
     }
@@ -305,12 +306,12 @@ const GarageSalesAdmin = () => {
           updatedAt: new Date().toISOString()
         };
         
-        console.log('Creating garage sale with data:', JSON.stringify(saleData, null, 2));
+        logger.log('[GarageSalesAdmin] Creating garage sale with data:', JSON.stringify(saleData, null, 2));
         
         try {
           await api.createGarageSale(saleData);
         } catch (error) {
-          console.error('API Error:', error.response?.data || error.message);
+          logger.error('[GarageSalesAdmin] API Error:', error.response?.data || error.message);
           throw error; // Re-throw to be caught by the outer catch block
         }
       }
@@ -325,7 +326,7 @@ const GarageSalesAdmin = () => {
       // Force refresh the list after adding/editing with the current community ID
       await fetchGarageSales(communityId, true);
     } catch (error) {
-      console.error('Error saving garage sale:', error);
+      logger.error('[GarageSalesAdmin] Error saving garage sale:', error);
       setSubmitError(error.message || 'Failed to save garage sale. Please try again.');
       // Scroll to top to show error message
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -341,7 +342,7 @@ const GarageSalesAdmin = () => {
         // Pass the communityId to ensure we're fetching the correct sales
         await fetchGarageSales(communityId, true);
       } catch (error) {
-        console.error('Error deleting garage sale:', error);
+        logger.error('[GarageSalesAdmin] Error deleting garage sale:', error);
       }
     }
   };
@@ -380,7 +381,7 @@ const GarageSalesAdmin = () => {
         await fetchGarageSales(communityId, true);
         handleAdminDeselectAll();
       } catch (error) {
-        console.error('Error deleting selected garage sales:', error);
+        logger.error('[GarageSalesAdmin] Error deleting selected garage sales:', error);
         alert('An error occurred while deleting selected garage sales.');
       }
     }

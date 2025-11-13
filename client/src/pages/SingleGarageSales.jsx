@@ -44,6 +44,7 @@ import { useSelection } from '../context/SelectionContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import api from '../utils/api';
+import { logger } from '../utils/logger';
 
 const SingleGarageSales = () => {
   const [garageSales, setGarageSales] = useState([]);
@@ -78,7 +79,7 @@ const SingleGarageSales = () => {
       try {
         // Use the environment variable for the API URL
         const apiUrl = `${import.meta.env.VITE_MAPS_API_URL}/v1/getAddressByCommunity/GENPUB`;
-        console.log('SingleGarageSales: Fetching data from API URL:', apiUrl);
+        logger.log('[SingleGarageSales] Fetching data from API URL:', apiUrl);
 
         // Try to get data from the API
         let data;
@@ -97,17 +98,17 @@ const SingleGarageSales = () => {
           }
 
           data = await response.json();
-          console.log('SingleGarageSales: Data received from API:', data);
+          logger.log('[SingleGarageSales] Data received from API:', data);
 
           // Store successful API response in sessionStorage for future use
           sessionStorage.setItem('garageSalesData', JSON.stringify(data));
         } catch (apiError) {
-          console.error('Error fetching from API:', apiError);
+          logger.error('[SingleGarageSales] Error fetching from API:', apiError);
 
           // Try to get data from sessionStorage as fallback
           const storedData = sessionStorage.getItem('garageSalesData');
           if (storedData) {
-            console.log('Using cached data from sessionStorage');
+            logger.log('[SingleGarageSales] Using cached data from sessionStorage');
             data = JSON.parse(storedData);
           } else {
             throw new Error('No cached data available and API request failed');
@@ -115,7 +116,7 @@ const SingleGarageSales = () => {
         }
 
         // Process the response data properly
-        console.log('Raw data to process:', data);
+        logger.log('[SingleGarageSales] Raw data to process:', data);
 
         // Based on the screenshots, the response structure is an array
         if (data && Array.isArray(data)) {
@@ -149,14 +150,14 @@ const SingleGarageSales = () => {
             };
           });
 
-          console.log('Processed sales data:', salesData);
+          logger.log('[SingleGarageSales] Processed sales data:', salesData);
           setGarageSales(salesData);
         } else {
-          console.log('No valid garage sales data found');
+          logger.log('[SingleGarageSales] No valid garage sales data found');
           setGarageSales([]);
         }
       } catch (err) {
-        console.error('Error in garage sales processing:', err);
+        logger.error('[SingleGarageSales] Error in garage sales processing:', err);
         setError('Failed to load garage sales. Please try again later.');
         setGarageSales([]);
       } finally {
@@ -172,18 +173,18 @@ const SingleGarageSales = () => {
     const fetchUserAddressList = async () => {
       if (isAuthenticated && userInfo?.userId) {
         try {
-          console.log('SingleGarageSales: Fetching user address list for user:', userInfo.userId);
+          logger.log('[SingleGarageSales] Fetching user address list for user:', userInfo.userId);
           const userAddressListResponse = await api.getUserAddressList(userInfo.userId);
 
           if (userAddressListResponse && userAddressListResponse.addressList && userAddressListResponse.addressList.length > 0) {
-            console.log('SingleGarageSales: User has saved address list on server:', userAddressListResponse.addressList);
+            logger.log('[SingleGarageSales] User has saved address list on server:', userAddressListResponse.addressList);
             setUserAddressList(userAddressListResponse.addressList);
           } else {
-            console.log('SingleGarageSales: User does not have a saved address list on server, using local selections');
+            logger.log('[SingleGarageSales] User does not have a saved address list on server, using local selections');
             setUserAddressList([]);
           }
         } catch (error) {
-          console.error('SingleGarageSales: Error fetching user address list:', error);
+          logger.error('[SingleGarageSales] Error fetching user address list:', error);
           // If there's an error, we'll fall back to the local storage selections
           setUserAddressList([]);
         }
@@ -208,8 +209,8 @@ const SingleGarageSales = () => {
         genpubGarageSaleIds.includes(selectedSaleId)
       );
 
-      console.log('SingleGarageSales: Filtered selected sales for GENPUB community:', filteredSelectedSales);
-      console.log('SingleGarageSales: GENPUB garage sale IDs:', genpubGarageSaleIds);
+      logger.log('[SingleGarageSales] Filtered selected sales for GENPUB community:', filteredSelectedSales);
+      logger.log('[SingleGarageSales] GENPUB garage sale IDs:', genpubGarageSaleIds);
 
       // Convert the filtered array to a Set for the selection context
       const serverSelectedSales = new Set(filteredSelectedSales);
@@ -223,7 +224,7 @@ const SingleGarageSales = () => {
         handleCheckboxChange(saleId);
       });
 
-      console.log('SingleGarageSales: Updated selections from server list (filtered for GENPUB community)');
+      logger.log('[SingleGarageSales] Updated selections from server list (filtered for GENPUB community)');
       setSelectionsInitialized(true); // Mark selections as initialized
     }
   }, [userAddressList, garageSales]);
@@ -239,12 +240,12 @@ const SingleGarageSales = () => {
     const isFullRouteOptimization = selectedSales.size === 0;
     setOptimizeFullRoute(isFullRouteOptimization);
 
-    console.log(`Optimizing ${isFullRouteOptimization ? 'FULL route' : 'SELECTED sales route'}`);
+    logger.log(`[SingleGarageSales] Optimizing ${isFullRouteOptimization ? 'FULL route' : 'SELECTED sales route'}`);
 
     // If there are selected sales and the user is authenticated, save them to the backend first
     if (selectedSales.size > 0 && isAuthenticated && userInfo?.userId) {
       try {
-        console.log('Saving selected sales to server before optimization for user:', userInfo.userId);
+        logger.log('[SingleGarageSales] Saving selected sales to server before optimization for user:', userInfo.userId);
 
         // Filter sales to only include those that are selected
         const selectedSalesData = garageSales
@@ -253,13 +254,13 @@ const SingleGarageSales = () => {
         // Extract just the IDs for the server request
         const selectedSaleIds = selectedSalesData.map(sale => sale.id);
 
-        console.log(`Saving ${selectedSaleIds.length} selected sales for GENPUB community`);
+        logger.log(`[SingleGarageSales] Saving ${selectedSaleIds.length} selected sales for GENPUB community`);
 
         // Save the selected sales to the server with GENPUB as communityId
         const response = await api.createUpdateUserAddressList(userInfo.userId, selectedSaleIds, 'GENPUB');
-        console.log('Successfully saved selected sales to server before optimization:', response);
+        logger.log('[SingleGarageSales] Successfully saved selected sales to server before optimization:', response);
       } catch (error) {
-        console.error('Error saving selected sales to server before optimization:', error);
+        logger.error('[SingleGarageSales] Error saving selected sales to server before optimization:', error);
         // Continue with optimization even if server save fails
         // We don't want to block the user from optimizing their route
       }
@@ -271,7 +272,7 @@ const SingleGarageSales = () => {
 
   const handleSelectFirstVisit = async (saleId) => {
     try {
-      console.log('Selected first visit:', saleId);
+      logger.log('[SingleGarageSales] Selected first visit:', saleId);
 
       // Get sessionId from localStorage
       const sessionId = localStorage.getItem('sessionId');
@@ -284,7 +285,7 @@ const SingleGarageSales = () => {
         ? `${import.meta.env.VITE_MAPS_API_URL}/v1/getOptimzedRoute/bySavedList`
         : `${import.meta.env.VITE_MAPS_API_URL}/v1/getOptimzedRoute`;
 
-      console.log(`Using endpoint: ${endpoint} (optimizeFullRoute=${optimizeFullRoute}, selectedSales.size=${selectedSales.size})`);
+      logger.log(`[SingleGarageSales] Using endpoint: ${endpoint} (optimizeFullRoute=${optimizeFullRoute}, selectedSales.size=${selectedSales.size})`);
 
       // Prepare the request payload based on the endpoint
       const payload = !optimizeFullRoute && selectedSales.size > 0
@@ -314,11 +315,11 @@ const SingleGarageSales = () => {
       }
 
       optimizedRouteData = await response.json();
-      console.log('API Response:', optimizedRouteData);
+      logger.log('[SingleGarageSales] API Response:', optimizedRouteData);
 
       // Process the response
       if (optimizedRouteData && optimizedRouteData.orderedWaypoints) {
-        console.log('Using optimised route data:', optimizedRouteData);
+        logger.log('[SingleGarageSales] Using optimised route data:', optimizedRouteData);
 
         // Create a map of addresses to sale data for matching
         const addressToSaleMap = {};
@@ -332,11 +333,11 @@ const SingleGarageSales = () => {
           }
         });
 
-        console.log('Address to sale map created with', Object.keys(addressToSaleMap).length, 'entries');
+        logger.log('[SingleGarageSales] Address to sale map created with', Object.keys(addressToSaleMap).length, 'entries');
 
         // Process the ordered waypoints from the API
         const filteredWaypoints = [];
-        console.log('Ordered waypoints from API:', optimizedRouteData.orderedWaypoints);
+        logger.log('[SingleGarageSales] Ordered waypoints from API:', optimizedRouteData.orderedWaypoints);
 
         // Process each waypoint in the optimized route
         optimizedRouteData.orderedWaypoints.forEach((waypoint, index) => {
@@ -350,7 +351,7 @@ const SingleGarageSales = () => {
             waypointAddress = waypoint.address || waypoint.location || '';
           }
 
-          console.log(`Processing waypoint ${index + 1}:`, waypointAddress);
+          logger.log(`[SingleGarageSales] Processing waypoint ${index + 1}:`, waypointAddress);
 
           if (waypointAddress) {
             // Normalize the address for matching
@@ -360,7 +361,7 @@ const SingleGarageSales = () => {
             const matchingSale = addressToSaleMap[normalizedAddress];
 
             if (matchingSale) {
-              console.log('Found matching sale with ID:', matchingSale.id);
+              logger.log('[SingleGarageSales] Found matching sale with ID:', matchingSale.id);
 
               // Add the waypoint with the correct ID and position information
               filteredWaypoints.push({
@@ -372,7 +373,7 @@ const SingleGarageSales = () => {
                 routeOrder: index + 1
               });
             } else {
-              console.log('No matching sale found for address:', waypointAddress);
+              logger.log('[SingleGarageSales] No matching sale found for address:', waypointAddress);
 
               // Include the waypoint even without a matching sale
               filteredWaypoints.push({
@@ -384,7 +385,7 @@ const SingleGarageSales = () => {
           }
         });
 
-        console.log('Filtered waypoints with route order:', filteredWaypoints);
+        logger.log('[SingleGarageSales] Filtered waypoints with route order:', filteredWaypoints);
 
         // Create a modified optimized route data with only selected sales
         const filteredOptimizedRouteData = {
@@ -402,11 +403,11 @@ const SingleGarageSales = () => {
         setShowRouteList(true);
         setShowOptimizeRoute(false);
       } else {
-        console.log('No optimized route data received or orderedWaypoints is empty');
+        logger.log('[SingleGarageSales] No optimized route data received or orderedWaypoints is empty');
         alert('No optimized route could be generated. Please try again.');
       }
     } catch (error) {
-      console.error('Error getting optimised route:', error);
+      logger.error('[SingleGarageSales] Error getting optimised route:', error);
       // Show user-friendly error message
       alert(`Error optimising route: ${error.message}`);
     }
@@ -462,9 +463,9 @@ const SingleGarageSales = () => {
     if (isAuthenticated && userInfo?.userId) {
       try {
         await api.createUpdateUserAddressList(userInfo.userId, [], 'GENPUB');
-        console.log('Successfully cleared selections on server');
+        logger.log('[SingleGarageSales] Successfully cleared selections on server');
       } catch (error) {
-        console.error('Error clearing selections on server:', error);
+        logger.error('[SingleGarageSales] Error clearing selections on server:', error);
       }
     }
   };
@@ -491,19 +492,19 @@ const SingleGarageSales = () => {
       // If user is authenticated, save the selection to the server
       if (isAuthenticated && userInfo?.userId) {
         try {
-          console.log('Saving selected sales to server for user:', userInfo.userId);
+          logger.log('[SingleGarageSales] Saving selected sales to server for user:', userInfo.userId);
 
           // Extract just the IDs for the server request
           const selectedSaleIds = selectedSalesData.map(sale => sale.id);
 
           // Save the selected sales to the server with the GENPUB communityId
           const response = await api.createUpdateUserAddressList(userInfo.userId, selectedSaleIds, 'GENPUB');
-          console.log('Successfully saved selected sales to server:', response);
+          logger.log('[SingleGarageSales] Successfully saved selected sales to server:', response);
         } catch (error) {
-          console.error('Error saving selected sales to server:', error);
+          logger.error('[SingleGarageSales] Error saving selected sales to server:', error);
         }
       } else {
-        console.log('User not authenticated, skipping server save of selected sales');
+        logger.log('[SingleGarageSales] User not authenticated, skipping server save of selected sales');
       }
 
       // If not already showing only selected sales, turn it on
@@ -525,8 +526,8 @@ const SingleGarageSales = () => {
   };
 
   // Add debugging for the garage sales state
-  console.log('Current garageSales state:', garageSales);
-  console.log('Number of garage sales:', garageSales.length);
+  logger.log('[SingleGarageSales] Current garageSales state:', garageSales);
+  logger.log('[SingleGarageSales] Number of garage sales:', garageSales.length);
 
   // Filter sales based on search term and display mode
   const filteredSales = garageSales.filter(sale => {
@@ -544,11 +545,11 @@ const SingleGarageSales = () => {
   });
 
   // Add debugging for filtered sales
-  console.log('Filtered sales:', filteredSales);
-  console.log('Number of filtered sales:', filteredSales.length);
-  console.log('Search term:', searchTerm);
-  console.log('Show only selected:', showOnlySelected);
-  console.log('Selected sales:', selectedSales);
+  logger.log('[SingleGarageSales] Filtered sales:', filteredSales);
+  logger.log('[SingleGarageSales] Number of filtered sales:', filteredSales.length);
+  logger.log('[SingleGarageSales] Search term:', searchTerm);
+  logger.log('[SingleGarageSales] Show only selected:', showOnlySelected);
+  logger.log('[SingleGarageSales] Selected sales:', selectedSales);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));

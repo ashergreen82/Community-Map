@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './PasswordReset.css';
+import { logger } from '../utils/logger';
 
 const PasswordReset = () => {
   const [password, setPassword] = useState('');
@@ -18,11 +19,11 @@ const PasswordReset = () => {
 
   useEffect(() => {
     // Extract token and email from URL parameters
-    console.log('URL search:', location.search);
+    logger.log('[PasswordReset] URL search:', location.search);
     const searchParams = new URLSearchParams(location.search);
     const tokenParam = searchParams.get('token');
     const emailParam = searchParams.get('email');
-    console.log('URL params extracted - token:', tokenParam ? 'exists' : 'missing', 'email:', emailParam);
+    logger.log('[PasswordReset] URL params extracted - token:', tokenParam ? 'exists' : 'missing', 'email:', emailParam);
 
     if (tokenParam) {
       setToken(tokenParam);
@@ -36,23 +37,23 @@ const PasswordReset = () => {
     }
 
     if (emailParam) {
-      console.log('Setting email from URL param:', emailParam);
+      logger.log('[PasswordReset] Setting email from URL param:', emailParam);
       setEmail(emailParam);
     } else if (tokenParam) {
       // Try to extract email from token immediately
       try {
-        console.log('Attempting to extract email from token');
+        logger.log('[PasswordReset] Attempting to extract email from token');
         const tokenParts = tokenParam.split('.');
         if (tokenParts.length === 3) {
           const payload = JSON.parse(atob(tokenParts[1]));
-          console.log('Token payload:', payload);
+          logger.log('[PasswordReset] Token payload:', payload);
           if (payload.email) {
-            console.log('Found email in token:', payload.email);
+            logger.log('[PasswordReset] Found email in token:', payload.email);
             setEmail(payload.email);
           }
         }
       } catch (error) {
-        console.error('Error extracting email from token:', error);
+        logger.error('[PasswordReset] Error extracting email from token:', error);
       }
     }
   }, [location]);
@@ -91,7 +92,7 @@ const PasswordReset = () => {
           }
         }
       } catch (error) {
-        console.error('Error parsing token:', error);
+        logger.error('[PasswordReset] Error parsing token:', error);
         setMessage({ type: 'error', text: 'Invalid token format. Please request a new password reset link.' });
         return;
       }
@@ -112,7 +113,7 @@ const PasswordReset = () => {
 
     try {
       setIsLoading(true);
-      console.warn('TOKEN: ', token);
+      logger.warn('[PasswordReset] TOKEN: ', token);
       await resetPassword(token, password, email);
       setMessage({ 
         type: 'success', 
@@ -124,7 +125,7 @@ const PasswordReset = () => {
         navigate('/login');
       }, 3000);
     } catch (error) {
-      console.error('Password reset error:', error);
+      logger.error('[PasswordReset] Password reset error:', error);
       setMessage({ 
         type: 'error', 
         text: error.response?.data?.message || 'An error occurred during password reset. Please try again or request a new reset link.' 
@@ -134,7 +135,7 @@ const PasswordReset = () => {
     }
   };
 
-  console.log('Rendering with email:', email);
+  logger.log('[PasswordReset] Rendering with email:', email);
   return (
     <div className="password-reset-container">
       <div className="password-reset-card">

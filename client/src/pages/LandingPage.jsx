@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { logger } from '../utils/logger';
 import './LandingPage.css';
 import communityMapImage from '../assets/community-map-example.jpg';
 import { useNavigation } from '../context/NavigationContext';
@@ -14,7 +15,7 @@ const LandingPage = () => {
   useEffect(() => {
     // Store the initial page in sessionStorage
     sessionStorage.setItem('initialPage', '/landing');
-    console.log('LandingPage: Recorded initial page as "/landing" in sessionStorage');
+    logger.log('[LandingPage] Recorded initial page as "/landing" in sessionStorage');
   }, []);
 
   const handleNavigation = (path) => {

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
 import api from '../utils/api';
 import './CommunitySalesAdmin.css';
+import { logger } from '../utils/logger';
 
 const CommunitySalesAdmin = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const CommunitySalesAdmin = () => {
           throw new Error('User ID is missing. Please log in again.');
         }
         
-        console.log('Fetching community sales for userId:', userId);
+        logger.log('[CommunitySalesAdmin] Fetching community sales for userId:', userId);
         
         // Use the environment variable for the API URL with the correct userId
         const apiUrl = `${import.meta.env.VITE_MAPS_API_URL}/v1/communitySales/byUser/${userId}`;
@@ -68,7 +69,7 @@ const CommunitySalesAdmin = () => {
         
         setCommunitySales(formattedData);
       } catch (err) {
-        console.error('Error fetching community sales:', err);
+        logger.error('[CommunitySalesAdmin] Error fetching community sales:', err);
         setError('Failed to load community sales. Please try again later.');
       } finally {
         setLoading(false);
@@ -77,10 +78,10 @@ const CommunitySalesAdmin = () => {
 
     // Check if we have a valid userInfo with userId
     if (userInfo && (userInfo.userId || userInfo.id)) {
-      console.log('User is logged in, fetching community sales...');
+      logger.log('[CommunitySalesAdmin] User is logged in, fetching community sales...');
       fetchCommunitySales();
     } else {
-      console.log('User not logged in or missing userId, skipping fetch');
+      logger.log('[CommunitySalesAdmin] User not logged in or missing userId, skipping fetch');
       setLoading(false);
     }
   }, [userInfo, sessionId]);
@@ -278,8 +279,8 @@ const CommunitySalesAdmin = () => {
         };
         
         // Debug information
-        console.log('API Update Data:', apiData);
-        console.log('Updating community sale with ID:', editingSale.id);
+        logger.log('[CommunitySalesAdmin] API Update Data:', apiData);
+        logger.log('[CommunitySalesAdmin] Updating community sale with ID:', editingSale.id);
         
         // Make API call to update community sale using PATCH method
         const apiUrl = `${import.meta.env.VITE_MAPS_API_URL}/v1/communitySales/update/${editingSale.id}`;
@@ -292,9 +293,9 @@ const CommunitySalesAdmin = () => {
           'Content-Type': 'application/json'
         };
         
-        console.log('Making PATCH request to update community sale with ID:', editingSale.id);
-        console.log('Request headers:', headers);
-        console.log('Request payload:', apiData);
+        logger.log('[CommunitySalesAdmin] Making PATCH request to update community sale with ID:', editingSale.id);
+        logger.log('[CommunitySalesAdmin] Request headers:', headers);
+        logger.log('[CommunitySalesAdmin] Request payload:', apiData);
         
         const response = await fetch(apiUrl, {
           method: 'PATCH',
@@ -351,10 +352,10 @@ const CommunitySalesAdmin = () => {
         };
         
         // Debug information
-        console.log('API Request Data:', apiData);
-        console.log('UserInfo:', userInfo);
-        console.log('Using sessionId:', sessionId);
-        console.log('App Key:', import.meta.env.VITE_APP_SESSION_KEY);
+        logger.log('[CommunitySalesAdmin] API Request Data:', apiData);
+        logger.log('[CommunitySalesAdmin] UserInfo:', userInfo);
+        logger.log('[CommunitySalesAdmin] Using sessionId:', sessionId);
+        logger.log('[CommunitySalesAdmin] App Key:', import.meta.env.VITE_APP_SESSION_KEY);
         
         // Make API call to create community sale
         const apiUrl = `${import.meta.env.VITE_MAPS_API_URL}/v1/communitySales/create`;
@@ -403,7 +404,7 @@ const CommunitySalesAdmin = () => {
         location: ''
       });
     } catch (err) {
-      console.error('Error creating/updating community sale:', err);
+      logger.error('[CommunitySalesAdmin] Error creating/updating community sale:', err);
       setSubmitError('Failed to save community sale. Please try again.');
       alert(`Error: ${err.message || 'Failed to save community sale. Please try again.'}`);
     } finally {
@@ -433,11 +434,11 @@ const CommunitySalesAdmin = () => {
           }
         } else {
           // Handle unexpected response
-          console.warn('Unexpected response from delete API:', result);
+          logger.warn('[CommunitySalesAdmin] Unexpected response from delete API:', result);
           alert('Unexpected response when deleting community sale. Please try again.');
         }
       } catch (error) {
-        console.error('Error deleting community sale:', error);
+        logger.error('[CommunitySalesAdmin] Error deleting community sale:', error);
         alert(`Failed to delete community sale: ${error.message || 'Unknown error'}`);
       }
     }
@@ -507,7 +508,7 @@ const CommunitySalesAdmin = () => {
   );
 
   // Debug logging
-  console.log('Debug - CommunitySalesAdmin state:', {
+  logger.log('[CommunitySalesAdmin] Debug state:', {
     loading,
     error,
     searchTerm,

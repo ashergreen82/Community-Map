@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useInitialPage } from '../context/InitialPageContext';
 import ReactGA from 'react-ga4';
 import './Login.css';
+import { logger } from '../utils/logger';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ const Login = () => {
 
   // Check for Google auth callback or password reset token
   useEffect(() => {
-    console.log('-------------------- useEffect in Login.jsx FIRED -----------------------');
+    logger.log('[Login] -------------------- useEffect FIRED -----------------------');
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get('code'); // Google returns 'code' not 'token'
     const resetTokenParam = searchParams.get('reset');
@@ -46,7 +47,7 @@ const Login = () => {
         try {
           setLoading(true);
           setError('');
-          console.log('GOOGLE AUTH: Processing Google authorization code');
+          logger.log('[Login] GOOGLE AUTH: Processing Google authorization code');
           await handleGoogleCallback(code);
 
           // --- GA Tracking for Google Login Success ---
@@ -58,15 +59,15 @@ const Login = () => {
           });
 
           // Force a delay to ensure context is properly loaded
-          console.log('GOOGLE AUTH: Authentication complete, preparing navigation');
+          logger.log('[Login] GOOGLE AUTH: Authentication complete, preparing navigation');
 
           // Always navigate to community sales admin after Google login
           // This is a direct approach that bypasses the initial page checking
-          console.log('GOOGLE AUTH: Navigating to /admin/community-sales');
+          logger.log('[Login] GOOGLE AUTH: Navigating to /admin/community-sales');
           navigate('/admin/community-sales');
         } catch (err) {
           setError('Failed to authenticate with Google. Please try again.');
-          console.error('Google authentication error:', err);
+          logger.error('[Login] Google authentication error:', err);
           ReactGA.event({
             category: 'Authentication',
             action: 'Login Failed',
@@ -245,7 +246,7 @@ const Login = () => {
       setLoading(true);
       // The initial page is already stored in sessionStorage by the InitialPageContext
       // so it will persist during the Google OAuth redirect
-      console.log('[Login] Starting Google login, initial page is preserved in session storage');
+      logger.log('[Login] Starting Google login, initial page is preserved in session storage');
       debugInitialPage(); // Log the current initial page before redirect
       await googleLogin();
       // No need to navigate here as googleLogin will redirect to Google OAuth

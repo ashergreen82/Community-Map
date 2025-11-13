@@ -6,6 +6,7 @@ import useWindowSize from '../hooks/useWindowSize';
 import MenuBarHamburger from './MenuBarHamburger';
 import api from '../utils/api';
 import './MenuBar.css';
+import { logger } from '../utils/logger';
 
 const MenuBar = () => {
   const navigate = useNavigate();
@@ -26,11 +27,11 @@ const MenuBar = () => {
     setFromLanding(true); // Set that navigation came from landing/menu bar
     try {
       // Make API call to get all single garage sales with community ID "GENPUB"
-      console.log('Fetching garage sales for GENPUB community...');
+      logger.log('[MenuBar] Fetching garage sales for GENPUB community...');
 
       // Use the MAPS API URL from environment variables
       const apiUrl = `${import.meta.env.VITE_MAPS_API_URL}/v1/getAddressByCommunity/GENPUB`;
-      console.log('Using API URL:', apiUrl);
+      logger.log('[MenuBar] Using API URL:', apiUrl);
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -43,7 +44,7 @@ const MenuBar = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Garage sales fetched successfully:', data);
+        logger.log('[MenuBar] Garage sales fetched successfully:', data);
 
         // Store the data in sessionStorage to ensure it's available when the page loads
         sessionStorage.setItem('garageSalesData', JSON.stringify(data));
@@ -52,7 +53,7 @@ const MenuBar = () => {
       // Navigate to the new SingleGarageSales page
       navigate('/single-garage-sales');
     } catch (error) {
-      console.error('Error fetching garage sales:', error);
+      logger.error('[MenuBar] Error fetching garage sales:', error);
       // Navigate anyway in case of error
       navigate('/single-garage-sales');
     }

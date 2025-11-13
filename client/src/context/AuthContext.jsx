@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { logger } from '../utils/logger';
 
 const AuthContext = createContext(null);
 
@@ -84,20 +85,20 @@ export const AuthProvider = ({ children }) => {
       await api.googleLogin();
       // No need to redirect here as it's handled in the API
     } catch (error) {
-      console.error('Error in googleLogin:', error);
+      logger.error('[AuthContext] Error in googleLogin:', error);
       throw error;
     }
   };
 
   const handleGoogleCallback = async (code) => {
     try {
-      console.log('AuthContext: Processing Google callback with authorization code');
+      logger.log('[AuthContext] Processing Google callback with authorization code');
       const response = await api.handleGoogleCallback(code);
       
       if (response && response.success && response.user) {
         // Extract user data from backend response
         const userData = response.user;
-        console.log('Login successful with user:', userData);
+        logger.log('[AuthContext] Login successful with user:', userData);
         
         // Construct user session data
         const authData = {
@@ -127,7 +128,7 @@ export const AuthProvider = ({ children }) => {
         
         // Get the initial page from sessionStorage and navigate directly back to it
         const initialPage = sessionStorage.getItem('initialPage');
-        console.log(`AUTH CONTEXT: Google login successful, navigating back to initial page: ${initialPage}`);
+        logger.log(`[AuthContext] Google login successful, navigating back to initial page: ${initialPage}`);
         
         // We need to use window.location instead of navigate() since this isn't a component
         setTimeout(() => {
@@ -139,7 +140,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Invalid response from Google authentication');
       }
     } catch (error) {
-      console.error('Error in handleGoogleCallback:', error);
+      logger.error('[AuthContext] Error in handleGoogleCallback:', error);
       setIsAuthenticated(false);
       setUserId(null);
       setUserType(null);
@@ -152,10 +153,10 @@ export const AuthProvider = ({ children }) => {
   const requestPasswordReset = async (email) => {
     try {
       const response = await api.requestPasswordReset(email);
-      console.log('Password reset email sent successfully');
+      logger.log('[AuthContext] Password reset email sent successfully');
       return { success: true, data: response };
     } catch (error) {
-      console.error('Error in requestPasswordReset:', error);
+      logger.error('[AuthContext] Error in requestPasswordReset:', error);
       throw error;
     }
   };
@@ -163,10 +164,10 @@ export const AuthProvider = ({ children }) => {
   const verifyResetToken = async (token) => {
     try {
       const response = await api.verifyResetToken(token);
-      console.log('Reset token verified successfully');
+      logger.log('[AuthContext] Reset token verified successfully');
       return { success: true, data: response };
     } catch (error) {
-      console.error('Error in verifyResetToken:', error);
+      logger.error('[AuthContext] Error in verifyResetToken:', error);
       throw error;
     }
   };
@@ -174,10 +175,10 @@ export const AuthProvider = ({ children }) => {
   const resetPassword = async (token, newPassword, userEmail) => {
     try {
       const response = await api.resetPassword(token, newPassword, userEmail);
-      console.log('Password reset successful');
+      logger.log('[AuthContext] Password reset successful');
       return { success: true, data: response };
     } catch (error) {
-      console.error('Error in resetPassword:', error);
+      logger.error('[AuthContext] Error in resetPassword:', error);
       throw error;
     }
   };
@@ -230,11 +231,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('selectedSales');
     localStorage.removeItem('adminSelectedSaleIds');
     
-    console.log('User logged out, cleared all user data and selections');
+    logger.log('[AuthContext] User logged out, cleared all user data and selections');
     
     // If user is on the garage sales page, navigate to the map page
     if (location.pathname === '/sales') {
-      console.log('User was on garage sales page, navigating to map page');
+      logger.log('[AuthContext] User was on garage sales page, navigating to map page');
       navigate('/');
     }
     

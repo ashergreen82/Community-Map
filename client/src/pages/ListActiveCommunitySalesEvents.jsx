@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '../utils/logger';
 import './ListActiveCommunitySalesEvents.css';
 
 function formatDate(dateString) {
@@ -53,10 +54,11 @@ const ListActiveCommunitySalesEvents = () => {
         });
         if (!response.ok) throw new Error('Failed to fetch sales');
         const data = await response.json();
-        console.log('Fetched community sales data:', data);
+        logger.info('[ListActiveCommunitySalesEvents] Fetched community sales data:', data);
         setSales(data || []);
       } catch (err) {
         setError(err.message);
+        logger.error('[ListActiveCommunitySalesEvents] Error fetching community sales events:', err);
       } finally {
         setLoading(false);
       }

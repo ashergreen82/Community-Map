@@ -5,6 +5,7 @@ import { useNavigation } from '../context/NavigationContext';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
 import './RegisterGarageSale.css'; // Use dedicated CSS for this component
 import api from '../utils/api';
+import { logger } from '../utils/logger';
 
 const RegisterGarageSale = () => {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ const RegisterGarageSale = () => {
           }
         }
       } catch (err) {
-        console.error('Error fetching GENPUB garage sales:', err);
+        logger.error('[RegisterGarageSale] Error fetching GENPUB garage sales:', err);
         // No existing sale or error fetching - that's okay, user can create a new one
       } finally {
         setLoading(false);
@@ -180,12 +181,12 @@ const RegisterGarageSale = () => {
             }
           });
         } else {
-          console.error('Error getting place details:', status);
+          logger.error('[RegisterGarageSale] Error getting place details:', status);
           setError('Failed to get address details. Please try entering manually.');
         }
       });
     } else {
-      console.error('Google Maps Places API not loaded');
+      logger.error('[RegisterGarageSale] Google Maps Places API not loaded');
       setError('Address search is not available. Please enter your address manually.');
       setUseManualAddress(true);
     }
@@ -225,20 +226,20 @@ const RegisterGarageSale = () => {
       const { streetNum, street } = parseStreetAddress(formData.street);
       
       // Debug user info
-      console.log('User Info Object:', userInfo);
-      console.log('User Info Keys:', Object.keys(userInfo));
-      console.log('User Info Values:', Object.values(userInfo));
-      console.log('User ID from userInfo:', userInfo?.id);
-      console.log('User ID from userInfo.sub:', userInfo?.sub);
-      console.log('User ID from userInfo.userId:', userInfo?.userId);
-      console.log('User ID from userInfo.user_id:', userInfo?.user_id);
+      logger.log('[RegisterGarageSale] User Info Object:', userInfo);
+      logger.log('[RegisterGarageSale] User Info Keys:', Object.keys(userInfo));
+      logger.log('[RegisterGarageSale] User Info Values:', Object.values(userInfo));
+      logger.log('[RegisterGarageSale] User ID from userInfo:', userInfo?.id);
+      logger.log('[RegisterGarageSale] User ID from userInfo.sub:', userInfo?.sub);
+      logger.log('[RegisterGarageSale] User ID from userInfo.userId:', userInfo?.userId);
+      logger.log('[RegisterGarageSale] User ID from userInfo.user_id:', userInfo?.user_id);
       
       // Get user ID with fallback to session storage if needed
       const userId = userInfo?.id || userInfo?.sub || userInfo?.userId || userInfo?.user_id || JSON.parse(sessionStorage.getItem('userInfo'))?.id;
-      console.log('Final User ID to be used:', userId);
+      logger.log('[RegisterGarageSale] Final User ID to be used:', userId);
       
       if (!userId) {
-        console.error('No user ID found!');
+        logger.error('[RegisterGarageSale] No user ID found!');
         throw new Error('User authentication error: No user ID available');
       }
       
@@ -263,14 +264,14 @@ const RegisterGarageSale = () => {
         userId: userId // Use the explicitly obtained user ID
       };
       
-      console.log('Sale Data Payload:', JSON.stringify(saleData, null, 2)); // Debug log
+      logger.log('[RegisterGarageSale] Sale Data Payload:', JSON.stringify(saleData, null, 2)); // Debug log
       
       let response;
       try {
         let apiResponse;
         if (existingSale && isEditing) {
           // Update existing garage sale
-          console.log('Updating existing garage sale with data:', JSON.stringify(saleData, null, 2));
+          logger.log('[RegisterGarageSale] Updating existing garage sale with data:', JSON.stringify(saleData, null, 2));
           apiResponse = await api.updateGarageSale(existingSale.id, saleData);
           // Set fromLanding to true and persist in sessionStorage
           setFromLanding(true);
@@ -280,11 +281,11 @@ const RegisterGarageSale = () => {
           window.location.reload();
         } else {
           // Create new garage sale
-          console.log('Creating new garage sale with data:', JSON.stringify(saleData, null, 2));
+          logger.log('[RegisterGarageSale] Creating new garage sale with data:', JSON.stringify(saleData, null, 2));
           apiResponse = await api.createGarageSale(saleData);
           setSuccess('');
         }
-        console.log('API Response:', apiResponse);
+        logger.log('[RegisterGarageSale] API Response:', apiResponse);
         response = apiResponse;
         
         // Update the existingSale state with the new data
@@ -294,18 +295,18 @@ const RegisterGarageSale = () => {
         const fetchGenpubSales = async () => {
           try {
             const response = await api.getAddressesByCommunity('GENPUB');
-            console.log('GENPUB garage sales response:', response.data);
+            logger.log('[RegisterGarageSale] GENPUB garage sales response:', response.data);
             
             // Find the user's garage sale from the GENPUB sales
             const userGarageSale = response.data.find(sale => sale.userId === userId);
-            console.log('User garage sale found:', userGarageSale);
+            logger.log('[RegisterGarageSale] User garage sale found:', userGarageSale);
             
             if (userGarageSale) {
               setExistingSale(userGarageSale);
               setGenpubSales([userGarageSale]); // Only show the user's garage sale
             }
           } catch (err) {
-            console.error('Error fetching GENPUB garage sales:', err);
+            logger.error('[RegisterGarageSale] Error fetching GENPUB garage sales:', err);
           }
         };
         
@@ -314,16 +315,16 @@ const RegisterGarageSale = () => {
           fetchGenpubSales();
         }
       } catch (err) {
-        console.error('Error in form submission:', err);
+        logger.error('[RegisterGarageSale] Error in form submission:', err);
         
         // Enhanced error message extraction
         let errorMessage = 'An error occurred. Please try again.';
         
         if (err.response) {
           // Server responded with error status
-          console.log('Error response:', err.response);
-          console.log('Error response data:', err.response.data);
-          console.log('Error response status:', err.response.status);
+          logger.log('[RegisterGarageSale] Error response:', err.response);
+          logger.log('[RegisterGarageSale] Error response data:', err.response.data);
+          logger.log('[RegisterGarageSale] Error response status:', err.response.status);
           
           if (err.response.data) {
             if (typeof err.response.data === 'string') {
@@ -376,7 +377,7 @@ const RegisterGarageSale = () => {
         setFeaturedItems(['']);
       }
     } catch (err) {
-      console.error('Error saving garage sale:', err);
+      logger.error('[RegisterGarageSale] Error saving garage sale:', err);
       setError(err.response?.data?.message || 'Failed to save your garage sale. Please try again.');
     } finally {
       setLoading(false);
@@ -444,14 +445,14 @@ const RegisterGarageSale = () => {
       setFeaturedItems(['']);
       setIsEditing(false);
     } catch (err) {
-      console.error('Error deleting garage sale:', err);
+      logger.error('[RegisterGarageSale] Error deleting garage sale:', err);
       
       // Enhanced error message extraction
       let errorMessage = 'Failed to delete your garage sale. Please try again.';
       
       if (err.response) {
-        console.log('Delete error response:', err.response);
-        console.log('Delete error response data:', err.response.data);
+        logger.log('[RegisterGarageSale] Delete error response:', err.response);
+        logger.log('[RegisterGarageSale] Delete error response data:', err.response.data);
         
         if (err.response.data) {
           if (typeof err.response.data === 'string') {
@@ -481,7 +482,7 @@ const RegisterGarageSale = () => {
   // Handle edit garage sale
   const handleEditClick = () => {
     if (existingSale) {
-      console.log('Editing existing sale:', existingSale); // Debug log
+      logger.log('[RegisterGarageSale] Editing existing sale:', existingSale); // Debug log
       
       setIsEditing(true);
       setSuccess(false);
@@ -520,7 +521,7 @@ const RegisterGarageSale = () => {
         }
       }
       
-      console.log('Populating form with:', {
+      logger.log('[RegisterGarageSale] Populating form with:', {
         name: existingSale.name || 'Garage Sale',
         description: existingSale.description || '',
         street: fullStreetAddress,
@@ -552,8 +553,8 @@ const RegisterGarageSale = () => {
         setFeaturedItems(['']);
       }
       
-      console.log('Form data set, featured items:', existingSale.highlightedItems); // Debug log
-      console.log('Manual address mode enabled for editing'); // Debug log
+      logger.log('[RegisterGarageSale] Form data set, featured items:', existingSale.highlightedItems); // Debug log
+      logger.log('[RegisterGarageSale] Manual address mode enabled for editing'); // Debug log
     }
   };
 

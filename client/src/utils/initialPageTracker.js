@@ -2,6 +2,8 @@
  * Utility functions for tracking the initial page a user visits
  */
 
+import { logger } from './logger';
+
 // Key used for localStorage
 const INITIAL_PAGE_KEY = 'initialPage';
 
@@ -14,9 +16,9 @@ export const recordInitialPage = (path) => {
   // Only set it if it hasn't been set before in this session
   if (!localStorage.getItem(INITIAL_PAGE_KEY)) {
     localStorage.setItem(INITIAL_PAGE_KEY, path);
-    console.log(`[InitialPageTracker] First page recorded: ${path}`);
+    logger.log(`[InitialPageTracker] First page recorded: ${path}`);
   } else {
-    console.log(`[InitialPageTracker] Initial page already recorded: ${localStorage.getItem(INITIAL_PAGE_KEY)}`);
+    logger.log(`[InitialPageTracker] Initial page already recorded: ${localStorage.getItem(INITIAL_PAGE_KEY)}`);
   }
 };
 
@@ -59,10 +61,10 @@ export const clearInitialPage = () => {
  */
 export const debugInitialPage = () => {
   const initialPage = getInitialPage();
-  console.log('===== INITIAL PAGE DEBUG INFO =====');
-  console.log(`Current initial page: ${initialPage || 'Not set'}`);
-  console.log(`Is initial page map? ${wasInitialPageMap() ? 'YES' : 'NO'}`);
-  console.log(`Is initial page about/landing? ${wasInitialPageAbout() ? 'YES' : 'NO'}`);
-  console.log('===================================');
+  logger.log('[InitialPageTracker] ===== DEBUG INFO =====');
+  logger.log(`[InitialPageTracker] Current initial page: ${initialPage || 'Not set'}`);
+  logger.log(`[InitialPageTracker] Is initial page map? ${wasInitialPageMap() ? 'YES' : 'NO'}`);
+  logger.log(`[InitialPageTracker] Is initial page about/landing? ${wasInitialPageAbout() ? 'YES' : 'NO'}`);
+  logger.log('[InitialPageTracker] ===================================');
   return initialPage;
 };

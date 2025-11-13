@@ -45,6 +45,7 @@ import { useSelection } from '../context/SelectionContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import api from '../utils/api';
+import { logger } from '../utils/logger';
 
 const GarageSales = () => {
   const {
@@ -85,7 +86,7 @@ const GarageSales = () => {
 
       // If we don't have the community name in context, fetch it
       if (!communityName) {
-        console.log('GarageSales: Community name not in context, fetching from API');
+        logger.log('[GarageSales] Community name not in context, fetching from API');
         const fetchCommunityName = async () => {
           try {
             const apiUrl = `${import.meta.env.VITE_MAPS_API_URL}/v1/communitySales/${id}`;
@@ -104,13 +105,13 @@ const GarageSales = () => {
               setCommunityName(name); // Also update the context
             }
           } catch (error) {
-            console.error('Error fetching community name:', error);
+            logger.error('[GarageSales] Error fetching community name:', error);
           }
         };
 
         fetchCommunityName();
       } else {
-        console.log('GarageSales: Using community name from context:', communityName);
+        logger.log('[GarageSales] Using community name from context:', communityName);
         setCommunityName(communityName);
       }
     }
@@ -131,18 +132,18 @@ const GarageSales = () => {
     const fetchUserAddressList = async () => {
       if (isAuthenticated && userInfo?.userId) {
         try {
-          console.log('Fetching user address list for user:', userInfo.userId);
+          logger.log('[GarageSales] Fetching user address list for user:', userInfo.userId);
           const userAddressListResponse = await api.getUserAddressList(userInfo.userId);
 
           if (userAddressListResponse && userAddressListResponse.addressList && userAddressListResponse.addressList.length > 0) {
-            console.log('User has saved address list on server:', userAddressListResponse.addressList);
+            logger.log('[GarageSales] User has saved address list on server:', userAddressListResponse.addressList);
             setUserAddressList(userAddressListResponse.addressList);
           } else {
-            console.log('User does not have a saved address list on server, using local selections');
+            logger.log('[GarageSales] User does not have a saved address list on server, using local selections');
             setUserAddressList([]);
           }
         } catch (error) {
-          console.error('Error fetching user address list:', error);
+          logger.error('[GarageSales] Error fetching user address list:', error);
           // If there's an error, we'll fall back to the local storage selections
           setUserAddressList([]);
         }
@@ -167,8 +168,8 @@ const GarageSales = () => {
         currentCommunityGarageSaleIds.includes(selectedSaleId)
       );
 
-      console.log('Filtered selected sales for current community:', filteredSelectedSales);
-      console.log('Current community garage sale IDs:', currentCommunityGarageSaleIds);
+      logger.log('[GarageSales] Filtered selected sales for current community:', filteredSelectedSales);
+      logger.log('[GarageSales] Current community garage sale IDs:', currentCommunityGarageSaleIds);
 
       // Convert the filtered array to a Set for the selection context
       const serverSelectedSales = new Set(filteredSelectedSales);
@@ -182,7 +183,7 @@ const GarageSales = () => {
         handleCheckboxChange(saleId);
       });
 
-      console.log('Updated selections from server list (filtered for current community)');
+      logger.log('[GarageSales] Updated selections from server list (filtered for current community)');
       setSelectionsInitialized(true); // Mark selections as initialized
     }
   }, [userAddressList, garageSales, communityId]);
@@ -216,13 +217,13 @@ const GarageSales = () => {
     // Then, if user is authenticated, update the server with an empty list
     if (isAuthenticated && userInfo?.userId) {
       try {
-        console.log('Updating server with empty selection list for user:', userInfo.userId);
+        logger.log('[GarageSales] Updating server with empty selection list for user:', userInfo.userId);
 
         // Call API with empty array for addressList
         const response = await api.createUpdateUserAddressList(userInfo.userId, []);
-        console.log('Successfully updated server with empty selection list:', response);
+        logger.log('[GarageSales] Successfully updated server with empty selection list:', response);
       } catch (error) {
-        console.error('Error updating server with empty selection list:', error);
+        logger.error('[GarageSales] Error updating server with empty selection list:', error);
       }
     }
   };
@@ -237,27 +238,27 @@ const GarageSales = () => {
       // If user is authenticated, save the selection to the server
       if (isAuthenticated && userInfo?.userId) {
         try {
-          console.log('Saving selected sales to server for user:', userInfo.userId);
+          logger.log('[GarageSales] Saving selected sales to server for user:', userInfo.userId);
 
           // Extract just the IDs for the server request, but only for the current communityId
           // This ensures we're not including sales from other community events
           const selectedSaleIds = selectedSalesData.map(sale => sale.id);
 
-          console.log(`Filtered ${selectedSales.size} total selected sales to ${selectedSaleIds.length} sales for current community ID: ${communityId}`);
+          logger.log(`[GarageSales] Filtered ${selectedSales.size} total selected sales to ${selectedSaleIds.length} sales for current community ID: ${communityId}`);
 
           // Save the selected sales to the server with the current communityId
           const response = await api.createUpdateUserAddressList(userInfo.userId, selectedSaleIds, communityId);
-          console.log('Successfully saved selected sales to server:', response);
+          logger.log('[GarageSales] Successfully saved selected sales to server:', response);
 
           // Optional: Show a success message
           // alert('Your selected garage sales have been saved to your account.');
         } catch (error) {
-          console.error('Error saving selected sales to server:', error);
+          logger.error('[GarageSales] Error saving selected sales to server:', error);
           // Continue with navigation even if server save fails
           // We don't want to block the user from viewing their selections
         }
       } else {
-        console.log('User not authenticated, skipping server save of selected sales');
+        logger.log('[GarageSales] User not authenticated, skipping server save of selected sales');
       }
 
       // If not already showing only selected sales, turn it on
@@ -280,12 +281,12 @@ const GarageSales = () => {
     const isFullRouteOptimization = selectedSales.size === 0;
     setOptimizeFullRoute(isFullRouteOptimization);
 
-    console.log(`Optimizing ${isFullRouteOptimization ? 'FULL route' : 'SELECTED sales route'}`);
+    logger.log(`[GarageSales] Optimizing ${isFullRouteOptimization ? 'FULL route' : 'SELECTED sales route'}`);
 
     // If there are selected sales and the user is authenticated, save them to the backend first
     if (selectedSales.size > 0 && isAuthenticated && userInfo?.userId) {
       try {
-        console.log('Saving selected sales to server before optimization for user:', userInfo.userId);
+        logger.log('[GarageSales] Saving selected sales to server before optimization for user:', userInfo.userId);
 
         // Filter sales to only include those from the current communityId
         // and that are also in the selectedSales set
@@ -295,13 +296,13 @@ const GarageSales = () => {
         // Extract just the IDs for the server request
         const selectedSaleIds = selectedSalesData.map(sale => sale.id);
 
-        console.log(`Saving ${selectedSaleIds.length} selected sales for current community ID: ${communityId}`);
+        logger.log(`[GarageSales] Saving ${selectedSaleIds.length} selected sales for current community ID: ${communityId}`);
 
         // Save the selected sales to the server with the current communityId
         const response = await api.createUpdateUserAddressList(userInfo.userId, selectedSaleIds, communityId);
-        console.log('Successfully saved selected sales to server before optimization:', response);
+        logger.log('[GarageSales] Successfully saved selected sales to server before optimization:', response);
       } catch (error) {
-        console.error('Error saving selected sales to server before optimization:', error);
+        logger.error('[GarageSales] Error saving selected sales to server before optimization:', error);
         // Continue with optimization even if server save fails
         // We don't want to block the user from optimizing their route
       }
@@ -315,7 +316,7 @@ const GarageSales = () => {
 
   const handleFullRouteOptimization = async () => {
     try {
-      console.log('Getting full route optimization');
+      logger.log('[GarageSales] Getting full route optimization');
 
       // Get sessionId from localStorage
       const sessionId = localStorage.getItem('sessionId');
@@ -342,11 +343,11 @@ const GarageSales = () => {
       }
 
       optimizedRouteData = await response.json();
-      console.log('API Response:', optimizedRouteData);
+      logger.log('[GarageSales] API Response:', optimizedRouteData);
 
       // Process the response
       if (optimizedRouteData && optimizedRouteData.orderedWaypoints) {
-        console.log('Using optimized route data:', optimizedRouteData);
+        logger.log('[GarageSales] Using optimized route data:', optimizedRouteData);
 
         // Store the optimized route data in localStorage for the map to use
         localStorage.setItem('optimizedRoute', JSON.stringify(optimizedRouteData));
@@ -361,7 +362,7 @@ const GarageSales = () => {
       }
 
     } catch (error) {
-      console.error('Error getting optimized route:', error);
+      logger.error('[GarageSales] Error getting optimized route:', error);
       // Show user-friendly error message
       alert(`Error optimizing route: ${error.message}`);
     }
@@ -369,7 +370,7 @@ const GarageSales = () => {
 
   const handleSelectFirstVisit = async (saleId) => {
     try {
-      console.log('Selected first visit:', saleId);
+      logger.log('[GarageSales] Selected first visit:', saleId);
 
       // Get sessionId from localStorage
       const sessionId = localStorage.getItem('sessionId');
@@ -384,7 +385,7 @@ const GarageSales = () => {
         ? `${import.meta.env.VITE_MAPS_API_URL}/v1/getOptimzedRoute/bySavedList`
         : `${import.meta.env.VITE_MAPS_API_URL}/v1/getOptimzedRoute`;
 
-      console.log(`Using endpoint: ${endpoint} (optimizeFullRoute=${optimizeFullRoute}, selectedSales.size=${selectedSales.size})`);
+      logger.log(`[GarageSales] Using endpoint: ${endpoint} (optimizeFullRoute=${optimizeFullRoute}, selectedSales.size=${selectedSales.size})`);
 
       // Prepare the request payload based on the endpoint
       const payload = !optimizeFullRoute && selectedSales.size > 0
@@ -414,11 +415,11 @@ const GarageSales = () => {
       }
 
       optimizedRouteData = await response.json();
-      console.log('API Response:', optimizedRouteData);
+      logger.log('[GarageSales] API Response:', optimizedRouteData);
 
       // Process the response
       if (optimizedRouteData && optimizedRouteData.orderedWaypoints) {
-        console.log('Using optimised route data:', optimizedRouteData);
+        logger.log('[GarageSales] Using optimised route data:', optimizedRouteData);
 
         // Create a map of addresses to sale data for matching
         const addressToSaleMap = {};
@@ -432,11 +433,11 @@ const GarageSales = () => {
           }
         });
 
-        console.log('Address to sale map created with', Object.keys(addressToSaleMap).length, 'entries');
+        logger.log('[GarageSales] Address to sale map created with', Object.keys(addressToSaleMap).length, 'entries');
 
         // Process the ordered waypoints from the API
         const filteredWaypoints = [];
-        console.log('Ordered waypoints from API:', optimizedRouteData.orderedWaypoints);
+        logger.log('[GarageSales] Ordered waypoints from API:', optimizedRouteData.orderedWaypoints);
 
         // Process each waypoint in the optimized route
         optimizedRouteData.orderedWaypoints.forEach((waypoint, index) => {
@@ -450,7 +451,7 @@ const GarageSales = () => {
             waypointAddress = waypoint.address || waypoint.location || '';
           }
 
-          console.log(`Processing waypoint ${index + 1}:`, waypointAddress);
+          logger.log(`[GarageSales] Processing waypoint ${index + 1}:`, waypointAddress);
 
           if (waypointAddress) {
             // Normalize the address for matching
@@ -460,7 +461,7 @@ const GarageSales = () => {
             const matchingSale = addressToSaleMap[normalizedAddress];
 
             if (matchingSale) {
-              console.log('Found matching sale with ID:', matchingSale.id);
+              logger.log('[GarageSales] Found matching sale with ID:', matchingSale.id);
 
               // Add the waypoint with the correct ID and position information
               filteredWaypoints.push({
@@ -472,7 +473,7 @@ const GarageSales = () => {
                 routeOrder: index + 1
               });
             } else {
-              console.log('No matching sale found for address:', waypointAddress);
+              logger.log('[GarageSales] No matching sale found for address:', waypointAddress);
 
               // Include the waypoint even without a matching sale
               filteredWaypoints.push({
@@ -484,7 +485,7 @@ const GarageSales = () => {
           }
         });
 
-        console.log('Filtered waypoints with route order:', filteredWaypoints);
+        logger.log('[GarageSales] Filtered waypoints with route order:', filteredWaypoints);
 
         // Create a modified optimized route data with only selected sales
         const filteredOptimizedRouteData = {
@@ -506,7 +507,7 @@ const GarageSales = () => {
       }
 
     } catch (error) {
-      console.error('Error getting optimised route:', error);
+      logger.error('[GarageSales] Error getting optimised route:', error);
       // Show user-friendly error message
       alert(`Error optimising route: ${error.message}`);
     }

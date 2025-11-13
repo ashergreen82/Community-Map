@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../pages/Login.css';
+import { logger } from '../utils/logger';
 
 const LoginRedirect = () => {
   const navigate = useNavigate();
@@ -12,11 +13,11 @@ const LoginRedirect = () => {
   const processingRef = useRef(false);
 
   useEffect(() => {
-    console.error('-------------------- useEffect in LoginRedirect.jsx FIRED -----------------------');
+    logger.error('[LoginRedirect] -------------------- useEffect FIRED -----------------------');
     const processAuth = async () => {
       // Prevent duplicate processing
       if (processingRef.current) {
-        console.log('Auth processing already in progress, skipping duplicate execution');
+        logger.log('[LoginRedirect] Auth processing already in progress, skipping duplicate execution');
         return;
       }
       
@@ -25,11 +26,11 @@ const LoginRedirect = () => {
       
       try {
         // Debug the incoming URL
-        console.log('=== LoginRedirect Page Loaded ===');
-        console.log('Current location:', location);
-        console.log('URL:', window.location.href);
-        console.log('Search params:', location.search);
-        console.log('Hash params:', location.hash);
+        logger.log('[LoginRedirect] === Page Loaded ===');
+        logger.log('[LoginRedirect] Current location:', location);
+        logger.log('[LoginRedirect] URL:', window.location.href);
+        logger.log('[LoginRedirect] Search params:', location.search);
+        logger.log('[LoginRedirect] Hash params:', location.hash);
         
         // Look for either code in search params or token in hash
         const searchParams = new URLSearchParams(location.search);
@@ -38,14 +39,14 @@ const LoginRedirect = () => {
         // Check if we've already processed this code in this session
         const processedCode = sessionStorage.getItem('processedAuthCode');
         if (code && processedCode === code) {
-          console.log('This code has already been processed in this session');
+          logger.log('[LoginRedirect] This code has already been processed in this session');
           setStatus('Login successful! Redirecting...');
           setTimeout(() => navigate('/'), 1000);
           return;
         }
         
         if (code) {
-          console.log('Authorization code found:', code);
+          logger.log('[LoginRedirect] Authorization code found:', code);
           
           // Store the code in session storage to prevent duplicate processing
           sessionStorage.setItem('processedAuthCode', code);
@@ -55,12 +56,12 @@ const LoginRedirect = () => {
           setStatus('Login successful! Redirecting...');
           setTimeout(() => navigate('/'), 1000);
         } else {
-          console.error('No authorization code found in URL');
+          logger.error('[LoginRedirect] No authorization code found in URL');
           setError('Authentication failed: No authorization code found');
           setTimeout(() => navigate('/login'), 3000);
         }
       } catch (err) {
-        console.error('Error in LoginRedirect:', err);
+        logger.error('[LoginRedirect] Error in LoginRedirect:', err);
         setError(`Authentication error: ${err.message}`);
         setTimeout(() => navigate('/login'), 3000);
       }

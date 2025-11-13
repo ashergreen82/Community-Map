@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import api from '../utils/api';
+import { logger } from '../utils/logger';
 
 const GarageSalesAndyContext = createContext();
 
@@ -12,12 +13,12 @@ export function GarageSalesAndyProvider({ children }) {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      console.log('GarageSalesContext: Fetching from API...');
+      logger.log('[GarageSalesContextAndy] Fetching from API...');
       const response = await api.getAddresses();
       var garageSales = response.data.map(gs => {
         return { ...gs, selected: false }
       });
-      console.log('GarageSalesContext: Raw API response:', garageSales);
+      logger.log('[GarageSalesContextAndy] Raw API response:', garageSales);
       setGarageSales(garageSales);
       setLoading(false);
     }
@@ -47,7 +48,7 @@ export function useGarageSales() {
   if (context === undefined) {
     throw new Error('useGarageSales must be used within a GarageSalesProvider');
   }
-  console.log('useGarageSales hook: Returning context with garageSales:', context.garageSales);
+  logger.log('[GarageSalesContextAndy] useGarageSales hook: Returning context with garageSales:', context.garageSales);
   return context;
 }
 
