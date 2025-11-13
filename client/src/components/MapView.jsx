@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSelection } from '../context/SelectionContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
 import api from '../utils/api';
+import { logger } from '../utils/logger';
 
 // Fallback component when map fails to load
 const MapLoadError = ({ error }) => {
@@ -98,7 +99,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
           setOptimizedRouteData(routeData);
           setShowOptimizedRoute(true);
         } catch (error) {
-          console.error('Error parsing optimized route data:', error);
+          logger.error('[MapView] Error parsing optimized route data:', error);
         }
       }
     }
@@ -115,17 +116,17 @@ function MapView({ mapContainerStyle, mapOptions }) {
     // Give URLSearchParams a chance to be processed by checking if location.search exists
     if (location.search && !urlCommunityId) {
       // URL has search params but communityId wasn't found - might still be parsing
-      console.log('MapView: URL has search params but communityId not found yet, waiting...');
+      logger.log('[MapView] URL has search params but communityId not found yet, waiting...');
       return;
     }
     
     if(urlCommunityId) {
-      console.log('MapView: Setting community ID from URL:', urlCommunityId);
+      logger.log('[MapView] Setting community ID from URL:', urlCommunityId);
       setCommunityId(urlCommunityId);
     } else if (!communityId && !location.search) {
       // Default to a specific community ID when none is provided
       const defaultCommunityId = 'eef06da4-788b-435b-8f84-9467dd5b89a9';
-      console.log('MapView: No community ID provided, defaulting to:', defaultCommunityId);
+      logger.log('[MapView] No community ID provided, defaulting to:', defaultCommunityId);
       setCommunityId(defaultCommunityId);
       // Update the URL to include the default community ID
       navigate(`?communityId=${defaultCommunityId}`, { replace: true });
@@ -136,7 +137,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
   useEffect(() => {
     // Only fetch if we have a communityId but no communityName
     if (communityId && !communityName) {
-      console.log('MapView: Community name not in context, fetching from API for communityId:', communityId);
+      logger.log('[MapView] Community name not in context, fetching from API for communityId:', communityId);
       
       const fetchCommunityName = async () => {
         try {
@@ -153,18 +154,18 @@ function MapView({ mapContainerStyle, mapOptions }) {
           if (response.ok) {
             const data = await response.json();
             if (data.name) {
-              console.log('MapView: Successfully fetched community name:', data.name);
+              logger.log('[MapView] Successfully fetched community name:', data.name);
               setCommunityName(data.name);
             } else {
-              console.log('MapView: Community name not found in API response, using default');
+              logger.log('[MapView] Community name not found in API response, using default');
               setCommunityName('Community Sales Day');
             }
           } else {
-            console.error('MapView: Failed to fetch community name, status:', response.status);
+            logger.error('[MapView] Failed to fetch community name, status:', response.status);
             setCommunityName('Community Sales Day');
           }
         } catch (error) {
-          console.error('MapView: Error fetching community name:', error);
+          logger.error('[MapView] Error fetching community name:', error);
           setCommunityName('Community Sales Day');
         }
       };
@@ -184,13 +185,13 @@ function MapView({ mapContainerStyle, mapOptions }) {
     const initialPage = '/';
     // Store the initial page in sessionStorage
     sessionStorage.setItem('initialPage', initialPage);
-    console.log(`MapView: Recorded initial page as "${initialPage}" in sessionStorage`);
+    logger.log(`[MapView] Recorded initial page as "${initialPage}" in sessionStorage`);
   }, []);
 
   // Initial load of garage sales
   useEffect(() => {
     if (!initialLoadRef.current && communityId) {
-      console.log('MapView: Initial load - fetching garage sales with communityId:', communityId);
+      logger.log('[MapView] Initial load - fetching garage sales with communityId:', communityId);
       fetchGarageSales(communityId);
       initialLoadRef.current = true;
     }
@@ -203,11 +204,11 @@ function MapView({ mapContainerStyle, mapOptions }) {
       // and we have the user's ID
       if (isAuthenticated && !userSelectionsLoadedRef.current && userInfo?.userId) {
         try {
-          console.log('MapView: User is logged in, fetching saved selections for user:', userInfo.userId);
+          logger.log('[MapView] User is logged in, fetching saved selections for user:', userInfo.userId);
           const userAddressList = await api.getUserAddressList(userInfo.userId);
           
           if (userAddressList && userAddressList.addressList && userAddressList.addressList.length > 0) {
-            console.log('MapView: User has saved selections on server:', userAddressList.addressList);
+            logger.log('[MapView] User has saved selections on server:', userAddressList.addressList);
             
             // Clear existing selections first
             handleDeselectAll();
@@ -217,15 +218,15 @@ function MapView({ mapContainerStyle, mapOptions }) {
               handleCheckboxChange(saleId);
             });
             
-            console.log('MapView: Updated selections from server list');
+            logger.log('[MapView] Updated selections from server list');
           } else {
-            console.log('MapView: User does not have saved selections on server, using local selections');
+            logger.log('[MapView] User does not have saved selections on server, using local selections');
           }
           
           // Mark that we've loaded user selections
           userSelectionsLoadedRef.current = true;
         } catch (error) {
-          console.error('MapView: Error fetching user selections:', error);
+          logger.error('[MapView] Error fetching user selections:', error);
           // If there's an error, we'll fall back to local storage selections
         }
       }
@@ -236,7 +237,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
 
   // Cleanup function for markers
   const cleanupMarkers = useCallback(() => {
-    console.log('MapView: Cleaning up markers');
+    logger.log('[MapView] Cleaning up markers');
     if (markersRef.current) {
       markersRef.current.forEach(marker => {
         if (marker) {
@@ -254,10 +255,10 @@ function MapView({ mapContainerStyle, mapOptions }) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('MapView: Component unmounting, cleaning up');
+      logger.log('[MapView] Component unmounting, cleaning up');
       cleanupMarkers();
       if (mapRef.current) {
-        console.log('MapView: Clearing map reference');
+        logger.log('[MapView] Clearing map reference');
         mapRef.current = null;
         setIsLoaded(false);
       }
@@ -266,7 +267,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
 
   const createMarkers = useCallback(() => {
     if (!mapRef.current || !window.google || !garageSales) {
-      console.log('MapView: Cannot create markers - missing requirements', {
+      logger.log('[MapView] Cannot create markers - missing requirements', {
         hasMap: !!mapRef.current,
         hasGoogle: !!window.google,
         salesCount: garageSales?.length
@@ -274,11 +275,11 @@ function MapView({ mapContainerStyle, mapOptions }) {
       return;
     }
 
-    console.log('MapView: Creating markers for', garageSales.length, 'sales');
+    logger.log('[MapView] Creating markers for', garageSales.length, 'sales');
     
     // Only cleanup if we have existing markers
     if (markersRef.current.length > 0) {
-      console.log('MapView: Cleaning up existing markers before creating new ones');
+      logger.log('[MapView] Cleaning up existing markers before creating new ones');
       cleanupMarkers();
     }
 
@@ -289,11 +290,11 @@ function MapView({ mapContainerStyle, mapOptions }) {
 
     const { AdvancedMarkerElement } = window.google.maps.marker;
     if (!AdvancedMarkerElement) {
-      console.error('AdvancedMarkerElement not available');
+      logger.error('[MapView] AdvancedMarkerElement not available');
       return;
     }
 
-    console.log('MapView: Starting to create', salesToShow.length, 'markers');
+    logger.log('[MapView] Starting to create', salesToShow.length, 'markers');
     let markersCreated = 0;
 
     // Create a map of addresses to their position in the optimized route
@@ -302,7 +303,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
     
     // If we have optimized route data, use it to determine the order numbers
     if (showOptimizedRoute && optimizedRouteData && optimizedRouteData.orderedWaypoints) {
-      console.log('MapView: Using optimized route data for marker numbering');
+      logger.log('[MapView] Using optimized route data for marker numbering');
       
       // Create a map of sale IDs to their corresponding addresses for better matching
       const saleIdToAddressMap = {};
@@ -319,7 +320,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
           if (typeof waypoint === 'object' && waypoint.id) {
             // This is likely from the filtered waypoints with routeOrder
             saleIdOrderMap[waypoint.id] = waypoint.routeOrder || (index + 1);
-            console.log(`MapView: Mapped sale ID ${waypoint.id} to order ${saleIdOrderMap[waypoint.id]}`);
+            logger.log(`[MapView] Mapped sale ID ${waypoint.id} to order ${saleIdOrderMap[waypoint.id]}`);
             
             // Also map the address if available
             if (waypoint.address) {
@@ -333,7 +334,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
                               (waypoint && waypoint.id && saleIdToAddressMap[waypoint.id] ? saleIdToAddressMap[waypoint.id] : ''));
             
             if (!addressStr) {
-              console.log('MapView: Could not extract address string from waypoint:', waypoint);
+              logger.log('[MapView] Could not extract address string from waypoint:', waypoint);
               return; // Skip this waypoint
             }
             
@@ -361,10 +362,10 @@ function MapView({ mapContainerStyle, mapOptions }) {
             }
             
             // Log for debugging
-            console.log(`MapView: Mapped waypoint ${index + 1}:`, addressStr);
+            logger.log(`[MapView] Mapped waypoint ${index + 1}:`, addressStr);
           }
         } catch (error) {
-          console.error('MapView: Error processing waypoint address:', error, waypoint);
+          logger.error('[MapView] Error processing waypoint address:', error, waypoint);
         }
       });
     }
@@ -393,7 +394,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
       // First check if we have a direct sale ID match (most reliable)
       if (sale.id && saleIdOrderMap[sale.id]) {
         orderNumber = saleIdOrderMap[sale.id];
-        console.log(`MapView: Found order number ${orderNumber} for sale ID ${sale.id}`);
+        logger.log(`[MapView] Found order number ${orderNumber} for sale ID ${sale.id}`);
       }
       // If no match by ID, try matching by address
       else if (sale.address) {
@@ -425,10 +426,10 @@ function MapView({ mapContainerStyle, mapOptions }) {
           
           // If we found a match, log it for debugging
           if (orderNumber) {
-            console.log(`MapView: Found order number ${orderNumber} for sale at ${sale.address}`);
+            logger.log(`[MapView] Found order number ${orderNumber} for sale at ${sale.address}`);
           }
         } catch (error) {
-          console.error('MapView: Error matching sale address:', error, sale.address);
+          logger.error('[MapView] Error matching sale address:', error, sale.address);
         }
       }
       
@@ -459,18 +460,18 @@ function MapView({ mapContainerStyle, mapOptions }) {
         markersRef.current.push(marker);
         markersCreated++;
       } catch (error) {
-        console.error('Error creating marker:', error, sale);
+        logger.error('[MapView] Error creating marker:', error, sale);
       }
     });
 
-    console.log('MapView: Successfully created', markersCreated, 'markers');
+    logger.log('[MapView] Successfully created', markersCreated, 'markers');
   }, [garageSales, selectedSaleIds, showOnlySelected, cleanupMarkers, showOptimizedRoute, optimizedRouteData]);
 
   // Watch for when both map and data are ready and create markers
   useEffect(() => {
     // Only proceed if we have all necessary data
     if (mapRef.current && garageSales?.length && window.google && isLoaded) {
-      console.log("DIRECT EFFECT: Map and data both ready, creating markers now!");
+      logger.log('[MapView] DIRECT EFFECT: Map and data both ready, creating markers now!');
       // Always recreate markers when this effect runs to ensure they're up to date
       createMarkers();
     }
@@ -508,7 +509,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
         lng: totalLng / validPositions
       };
       
-      console.log('MapView: Centering on community sales at', communityCenter);
+      logger.log('[MapView] Centering on community sales at', communityCenter);
       setCenter(communityCenter);
       
       // Center the map and fit to bounds
@@ -526,7 +527,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
   // Effect to handle centering on user location
   useEffect(() => {
     if (shouldCenterOnUser && userLocation && mapRef.current) {
-      console.log('MapView: Centering on user location', userLocation);
+      logger.log('[MapView] Centering on user location', userLocation);
       mapRef.current.panTo(userLocation);
       mapRef.current.setZoom(15);
       clearCenterOnUser();
@@ -544,26 +545,26 @@ function MapView({ mapContainerStyle, mapOptions }) {
   useEffect(() => {
     // Only proceed if map is loaded and we have location
     if (!isLoaded) {
-      console.log('MapView: Map not yet loaded, waiting...');
+      logger.log('[MapView] Map not yet loaded, waiting...');
       return;
     }
 
     if (!userLocation) {
-      console.log('MapView: No user location yet, waiting...');
+      logger.log('[MapView] No user location yet, waiting...');
       return;
     }
 
     if (!window.google) {
-      console.log('MapView: Google Maps not yet available, waiting...');
+      logger.log('[MapView] Google Maps not yet available, waiting...');
       return;
     }
 
     if (!mapRef.current) {
-      console.log('MapView: Map reference not yet available, waiting...');
+      logger.log('[MapView] Map reference not yet available, waiting...');
       return;
     }
 
-    console.log('MapView: All requirements met, creating user location marker', {
+    logger.log('[MapView] All requirements met, creating user location marker', {
       hasMap: !!mapRef.current,
       hasLocation: !!userLocation,
       hasGoogle: !!window.google,
@@ -573,7 +574,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
     try {
       const { AdvancedMarkerElement } = window.google.maps.marker;
       if (!AdvancedMarkerElement) {
-        console.error('AdvancedMarkerElement not available');
+        logger.error('[MapView] AdvancedMarkerElement not available');
         return;
       }
 
@@ -636,46 +637,46 @@ function MapView({ mapContainerStyle, mapOptions }) {
         title: 'Your Location'
       });
 
-      console.log('MapView: Successfully created user location marker');
+      logger.log('[MapView] Successfully created user location marker');
     } catch (error) {
-      console.error('Error creating user location marker:', error);
+      logger.error('[MapView] Error creating user location marker:', error);
     }
   }, [userLocation, isLoaded]);
 
   // Effect to create markers when map is loaded and sales data is available
   useEffect(() => {
     if (!isLoaded) {
-      console.log('MapView: Map not loaded yet, waiting to create markers...');
+      logger.log('[MapView] Map not loaded yet, waiting to create markers...');
       return;
     }
 
     if (!garageSales?.length) {
-      console.log('MapView: No garage sales data yet, waiting...');
+      logger.log('[MapView] No garage sales data yet, waiting...');
       return;
     }
 
     if (!window.google) {
-      console.log('MapView: Google Maps not available yet, waiting...');
+      logger.log('[MapView] Google Maps not available yet, waiting...');
       return;
     }
 
     if (!mapRef.current) {
-      console.log('MapView: Map reference not available yet, waiting...');
+      logger.log('[MapView] Map reference not available yet, waiting...');
       return;
     }
 
-    console.log('MapView: All requirements met, creating', garageSales.length, 'markers');
+    logger.log('[MapView] All requirements met, creating', garageSales.length, 'markers');
     createMarkers();
   }, [isLoaded, garageSales, createMarkers]);
 
   // Function to display the optimized route on the map
   const displayOptimizedRoute = useCallback((routeData) => {
     if (!mapRef.current || !window.google || !routeData) {
-      console.error('MapView: Cannot display optimized route - missing requirements');
+      logger.error('[MapView] Cannot display optimized route - missing requirements');
       return;
     }
 
-    console.log('MapView: Displaying optimized route with data:', routeData);
+    logger.log('[MapView] Displaying optimized route with data:', routeData);
     
     try {
       const DirectionsService = new window.google.maps.DirectionsService();
@@ -684,7 +685,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
       const waypoints = routeData.orderedWaypoints || [];
       
       if (waypoints.length < 2) {
-        console.error('MapView: Not enough waypoints to create a route');
+        logger.error('[MapView] Not enough waypoints to create a route');
         return;
       }
       
@@ -718,22 +719,22 @@ function MapView({ mapContainerStyle, mapOptions }) {
         travelMode: window.google.maps.TravelMode.DRIVING
       }, (result, status) => {
         if (status === window.google.maps.DirectionsStatus.OK) {
-          console.log('MapView: Successfully received directions for optimized route');
+          logger.log('[MapView] Successfully received directions for optimized route');
           setDirections(result);
         } else {
-          console.error('MapView: Error getting directions for optimized route:', status);
+          logger.error('[MapView] Error getting directions for optimized route:', status);
           alert(`Error getting directions: ${status}`);
         }
       });
     } catch (error) {
-      console.error('MapView: Error displaying optimized route:', error);
+      logger.error('[MapView] Error displaying optimized route:', error);
     }
   }, []);
 
   // Effect to display optimized route when data changes
   useEffect(() => {
     if (isLoaded && showOptimizedRoute && optimizedRouteData && window.google) {
-      console.log('MapView: Optimized route data changed, displaying route and recreating markers');
+      logger.log('[MapView] Optimized route data changed, displaying route and recreating markers');
       displayOptimizedRoute(optimizedRouteData);
       
       // Recreate markers to show the sequence numbers
@@ -747,7 +748,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
 
   // Handle map load event
   const handleMapLoad = useCallback((map) => {
-    console.log('MapView: Map loaded');
+    logger.log('[MapView] Map loaded');
     mapRef.current = map;
     setIsLoaded(true);
   }, []);
@@ -779,14 +780,14 @@ function MapView({ mapContainerStyle, mapOptions }) {
   };
 
   // Log when rendering the map
-  console.log('MapView: Rendering Google Map component');
+  logger.log('[MapView] Rendering Google Map component');
 
   // Prepare render content based on state
   let renderContent;
   
   // Check if window.google is available (maps script is loaded)
   if (!window.google) {
-    console.error('Google Maps API not loaded yet');
+    logger.error('[MapView] Google Maps API not loaded yet');
     renderContent = <MapLoadError error="Google Maps not loaded yet. Please try refreshing the page." />;
   }
   // Loading and error states for garage sales data
@@ -816,12 +817,12 @@ function MapView({ mapContainerStyle, mapOptions }) {
             }
           }}
           onLoad={(map) => {
-            console.log("Map component loaded");
+            logger.log('[MapView] Map component loaded');
             mapRef.current = map;
             
             // Explicitly set map type control position based on screen width
             if (map && window.google) {
-              console.log('Setting map options with screen width:', width, 'isCompactView:', isCompactView);
+              logger.log('[MapView] Setting map options with screen width:', width, 'isCompactView:', isCompactView);
               
               if (isCompactView) {
                 // For small screens (<1045px): Stack controls vertically
@@ -898,7 +899,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
             
             // Directly create markers if garage sales data is available
             if (garageSales?.length && window.google) {
-              console.log("Map loaded with data available, creating markers immediately");
+              logger.log('[MapView] Map loaded with data available, creating markers immediately');
               setTimeout(() => {
                 createMarkers();
                 // Center on the community sales instead of user location
@@ -907,7 +908,7 @@ function MapView({ mapContainerStyle, mapOptions }) {
             }
           }}
           onUnmount={(map) => {
-            console.log("Map component unmounted");
+            logger.log('[MapView] Map component unmounted');
             mapRef.current = null;
           }}
           options={mapOptions}
