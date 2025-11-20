@@ -554,8 +554,6 @@ const GarageSales = () => {
     (sale.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // console.log("JMD", JSON.stringify(garageSales, null, 2));
-
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 

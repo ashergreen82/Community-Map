@@ -584,10 +584,6 @@ const RegisterGarageSale = () => {
   return (
     <div className="garage-sales-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
       <h1 style={{fontWeight: "600"}}>
-        {/* <div className="user-info-header">
-          <span className="user-name">{displayName}</span>
-          {userEmail && <span className="user-email">{userEmail}</span>}
-        </div> */}
         {existingSale && !isEditing ? '' : 'Register a Garage Sale'}
       </h1>
       {!existingSale || isEditing ? (

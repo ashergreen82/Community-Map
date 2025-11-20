@@ -160,10 +160,7 @@ const LandingPage = () => {
         <div className="landing-layout-container">
           {/* How It Works */}
 
-
           <section className="landing-section">
-            {/* <div className="landing-steps"> */}
-
             <div className="landing-step">
               <div className="step-number">1</div>
               <div className="step-content">
@@ -204,7 +201,6 @@ const LandingPage = () => {
                 </p>
               </div>
             </div>
-            {/* </div> */}
           </section>
         </div>
 
@@ -266,7 +262,6 @@ const LandingPage = () => {
         </div>
 
         <hr />
-        {/* <h2 className="landing-section-title">Need Help?</h2> */}
         <div className="landing-layout-container help-section-container">
           {/* Column 1: Contact Information */}
           <section className="landing-section help-column">
@@ -296,7 +291,6 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="landing-footer">
-        {/* <p>&copy; 2025 Community Garage Sale Maps. All rights reserved.</p> */}
       </footer>
     </div>
   );

@@ -122,14 +122,6 @@ const HamburgerMenu = () => {
           <span className="menu-text">Show Community QR Code</span>
         </div>
 
-        {/* <div className="menu-item" onClick={() => {
-          navigate('/settings');
-          setIsOpen(false);
-        }}>
-          <span className="menu-icon">⚙️</span>
-          <span className="menu-text">Map Settings</span>
-        </div> */}
-
         <div className="menu-item" onClick={() => {
           navigate('/help');
           setIsOpen(false);
