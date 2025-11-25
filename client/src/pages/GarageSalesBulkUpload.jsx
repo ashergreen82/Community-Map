@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCommunityName } from '../hooks/useCommunityName';
 import api from '../utils/api';
 import './GarageSalesBulkUpload.css';
 import { logger } from '../utils/logger';
@@ -14,6 +15,12 @@ const GarageSalesBulkUpload = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
+  // Use custom hook for community name fetching
+  useCommunityName(communityId, communityName, setCommunityName, {
+    componentName: 'GarageSalesBulkUpload',
+    skipIfExists: false // Always fetch when communityId changes
+  });
+
   const handleCommunityIdChange = (e) => {
     setCommunityId(e.target.value);
   };
@@ -24,30 +31,7 @@ const GarageSalesBulkUpload = () => {
     }
   };
 
-  const fetchCommunityName = async () => {
-    if (!communityId) return;
-    
-    try {
-      const apiUrl = `${import.meta.env.VITE_MAPS_API_URL}/v1/getAddressByCommunity/${communityId}`;
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'app-name': 'web-service',
-          'app-key': import.meta.env.VITE_APP_SESSION_KEY
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setCommunityName(data.name || 'Community Sale');
-      } else {
-        setCommunityName('');
-      }
-    } catch (error) {
-      logger.error('[GarageSalesBulkUpload] Error fetching community name:', error);
-      setCommunityName('');
-    }
-  };
+  // Community name fetching handled by useCommunityName hook
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,8 +46,7 @@ const GarageSalesBulkUpload = () => {
     setErrors([]);
 
     try {
-      // First fetch the community name to verify the community ID is valid
-      await fetchCommunityName();
+      // Community name is automatically fetched by the hook
       
       // Read the file
       const fileReader = new FileReader();
@@ -176,7 +159,6 @@ const GarageSalesBulkUpload = () => {
             id="communityId"
             value={communityId}
             onChange={handleCommunityIdChange}
-            onBlur={fetchCommunityName}
             placeholder="Enter community ID"
             required
           />

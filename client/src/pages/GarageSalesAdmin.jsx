@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDisplay } from '../context/DisplayContext';
 import { useSearch } from '../context/SearchContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
+import { useCommunityName } from '../hooks/useCommunityName';
 import AutoResizeTextArea from '../components/AutoResizeTextArea';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
 import api from '../utils/api';
@@ -24,7 +25,13 @@ const GarageSalesAdmin = () => {
   const location = useLocation();
   const { isAuthenticated, userEmail, userInfo } = useAuth();
   const { searchTerm, handleSearchChange } = useSearch();
-  const { communityName, communityId } = useCommunitySales();
+  const { communityName, setCommunityName, communityId, setCommunityId } = useCommunitySales();
+  
+  // Use custom hook for community name fetching
+  useCommunityName(communityId, communityName, setCommunityName, {
+    componentName: 'GarageSalesAdmin',
+    skipIfExists: true
+  });
   
   // State for query param only
   const queryParams = new URLSearchParams(location.search);
@@ -72,35 +79,7 @@ const GarageSalesAdmin = () => {
     }
   }, [location.search, fetchGarageSales, communityName, communityId]);
 
-  // Extract communityId from URL parameters
-  useEffect(() => {
-    // Only fetch community name if it's not already available in the context
-    if (!communityName && communityId && typeof setCommunityName === 'function') {
-      logger.log('[GarageSalesAdmin] Community name not in context, fetching from API');
-      // Fetch community name based on ID
-      const fetchCommunityName = async () => {
-        try {
-          const apiUrl = `${import.meta.env.VITE_MAPS_API_URL}/v1/getAddressByCommunity/${communityId}`;
-          const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-              'app-name': 'web-service',
-              'app-key': import.meta.env.VITE_APP_SESSION_KEY
-            }
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setCommunityName(data.name || 'Community Sale');
-          }
-        } catch (error) {
-          logger.error('[GarageSalesAdmin] Error fetching community name:', error);
-        }
-      };
-      fetchCommunityName();
-    } else if (communityName) {
-      logger.log('[GarageSalesAdmin] Using community name from context:', communityName);
-    }
-  }, [communityId, communityName]);
+  // Extract communityId from URL parameters - community name fetching handled by useCommunityName hook
   
   // Load any previously saved admin selections
   useEffect(() => {

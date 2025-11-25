@@ -45,6 +45,7 @@ import { useSelection } from '../context/SelectionContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import { useUserAddressList } from '../hooks/useUserAddressList';
+import { useCommunityName } from '../hooks/useCommunityName';
 import api from '../utils/api';
 import { logger } from '../utils/logger';
 
@@ -77,50 +78,22 @@ const GarageSales = () => {
     { componentName: 'GarageSales', requireCommunityId: true }
   );
 
+  // Use custom hook for community name fetching
+  useCommunityName(communityId, communityName, setCommunityName, {
+    componentName: 'GarageSales',
+    skipIfExists: true
+  });
+
   // Extract communityId from URL parameters and update context/state
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const id = queryParams.get('communityId');
-  
-
 
     if (id) {
-      // Update local state
-      setCommunityId(id);
       // Update context
       setCommunityId(id);
-
-      // If we don't have the community name in context, fetch it
-      if (!communityName) {
-        logger.log('[GarageSales] Community name not in context, fetching from API');
-        const fetchCommunityName = async () => {
-          try {
-            const apiUrl = `${import.meta.env.VITE_MAPS_API_URL}/v1/communitySales/${id}`;
-            const response = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'app-name': 'web-service',
-                'app-key': import.meta.env.VITE_APP_SESSION_KEY
-              }
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              const name = data.name || 'Community Sale';
-              setCommunityName(name);
-            }
-          } catch (error) {
-            logger.error('[GarageSales] Error fetching community name:', error);
-          }
-        };
-
-        fetchCommunityName();
-      } else {
-        logger.log('[GarageSales] Using community name from context:', communityName);
-        setCommunityName(communityName);
-      }
     }
-  }, [location, communityName, setCommunityId, setCommunityName]);
+  }, [location, setCommunityId]);
 
   // Fetch garage sales, filtered by communityId if available
   useEffect(() => {
