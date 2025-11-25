@@ -44,6 +44,7 @@ import { useSearch } from '../context/SearchContext';
 import { useSelection } from '../context/SelectionContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
 import LoginRequiredModal from '../components/LoginRequiredModal';
+import { useUserAddressList } from '../hooks/useUserAddressList';
 import api from '../utils/api';
 import { logger } from '../utils/logger';
 
@@ -67,9 +68,14 @@ const GarageSales = () => {
   const [showOptimizeRoute, setShowOptimizeRoute] = useState(false);
   const [optimizedRouteAddresses, setOptimizedRouteAddresses] = useState([]);
   const [showRouteList, setShowRouteList] = useState(false);
-  const [userAddressList, setUserAddressList] = useState(null);
   const [optimizeFullRoute, setOptimizeFullRoute] = useState(false);
-  const [selectionsInitialized, setSelectionsInitialized] = useState(false);
+
+  // Use custom hook for user address list management
+  const { userAddressList, selectionsInitialized, setSelectionsInitialized } = useUserAddressList(
+    garageSales,
+    communityId,
+    { componentName: 'GarageSales', requireCommunityId: true }
+  );
 
   // Extract communityId from URL parameters and update context/state
   useEffect(() => {
@@ -102,7 +108,6 @@ const GarageSales = () => {
               const data = await response.json();
               const name = data.name || 'Community Sale';
               setCommunityName(name);
-              setCommunityName(name); // Also update the context
             }
           } catch (error) {
             logger.error('[GarageSales] Error fetching community name:', error);
@@ -121,72 +126,6 @@ const GarageSales = () => {
   useEffect(() => {
     fetchGarageSales(communityId);
   }, [fetchGarageSales, communityId]);
-
-  // Reset selections initialized flag when community changes
-  useEffect(() => {
-    setSelectionsInitialized(false);
-  }, [communityId]);
-
-  // Effect to fetch user's saved address list from server if user is logged in - only runs once on mount
-  useEffect(() => {
-    const fetchUserAddressList = async () => {
-      if (isAuthenticated && userInfo?.userId) {
-        try {
-          logger.log('[GarageSales] Fetching user address list for user:', userInfo.userId);
-          const userAddressListResponse = await api.getUserAddressList(userInfo.userId);
-
-          if (userAddressListResponse && userAddressListResponse.addressList && userAddressListResponse.addressList.length > 0) {
-            logger.log('[GarageSales] User has saved address list on server:', userAddressListResponse.addressList);
-            setUserAddressList(userAddressListResponse.addressList);
-          } else {
-            logger.log('[GarageSales] User does not have a saved address list on server, using local selections');
-            setUserAddressList([]);
-          }
-        } catch (error) {
-          logger.error('[GarageSales] Error fetching user address list:', error);
-          // If there's an error, we'll fall back to the local storage selections
-          setUserAddressList([]);
-        }
-      }
-    };
-
-    fetchUserAddressList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Effect to filter and apply user's selected sales when garage sales are loaded
-  useEffect(() => {
-    if (userAddressList && garageSales && garageSales.length > 0 && communityId && !selectionsInitialized) {
-      // Filter the selected sales to only include those from the current community
-      let filteredSelectedSales = userAddressList;
-
-      // Get the IDs of garage sales that belong to the current community
-      const currentCommunityGarageSaleIds = garageSales.map(sale => sale.id);
-
-      // Filter the user's selected sales to only include those in the current community
-      filteredSelectedSales = userAddressList.filter(selectedSaleId =>
-        currentCommunityGarageSaleIds.includes(selectedSaleId)
-      );
-
-      logger.log('[GarageSales] Filtered selected sales for current community:', filteredSelectedSales);
-      logger.log('[GarageSales] Current community garage sale IDs:', currentCommunityGarageSaleIds);
-
-      // Convert the filtered array to a Set for the selection context
-      const serverSelectedSales = new Set(filteredSelectedSales);
-
-      // Update the selected sales in the selection context
-      // This will override any locally stored selections
-      handleDeselectAll(); // Clear existing selections first
-
-      // Add each server-side selection that belongs to the current community
-      serverSelectedSales.forEach(saleId => {
-        handleCheckboxChange(saleId);
-      });
-
-      logger.log('[GarageSales] Updated selections from server list (filtered for current community)');
-      setSelectionsInitialized(true); // Mark selections as initialized
-    }
-  }, [userAddressList, garageSales, communityId]);
 
   const handleSelectionWithAuth = (saleId) => {
     if (!isAuthenticated) {
