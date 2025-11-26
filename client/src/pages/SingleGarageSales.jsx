@@ -44,6 +44,7 @@ import { useSelection } from '../context/SelectionContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import { useUserAddressList } from '../hooks/useUserAddressList';
+import { formatFullAddress } from '../utils/addressFormatter';
 import api from '../utils/api';
 import { logger } from '../utils/logger';
 
@@ -130,20 +131,15 @@ const SingleGarageSales = () => {
             // Extract address data from the nested address object
             const addressObj = sale.address || {};
 
-            // Create a formatted address string including all components
-            const formattedAddress = [
-              addressObj.streetNum,
-              addressObj.street,
-              addressObj.city,
-              addressObj.provState,
-              addressObj.postalZipCode
-            ].filter(Boolean).join(', ');
+            // Format address using utility function
+            const formattedAddress = formatFullAddress(addressObj);
+            const { addressLine1, addressLine2 } = formatFullAddress(addressObj, { multiLine: true });
 
             return {
               id: sale.id || `sale-${Math.random().toString(36).substr(2, 9)}`,
               address: formattedAddress,
-              addressLine1: addressObj.streetNum + " " + addressObj.street || '',
-              addressLine2: addressObj.city + ", " + addressObj.provState + ", " + addressObj.postalZipCode || '',
+              addressLine1,
+              addressLine2,
               fullAddress: addressObj, // Store the full address object for reference
               description: sale.description || '',
               name: sale.name || 'GARAGE SALE',

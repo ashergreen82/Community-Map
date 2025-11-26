@@ -8,6 +8,7 @@ import { useCommunitySales } from '../context/CommunitySalesContext';
 import { useCommunityName } from '../hooks/useCommunityName';
 import AutoResizeTextArea from '../components/AutoResizeTextArea';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
+import { parseAddressString } from '../utils/addressFormatter';
 import api from '../utils/api';
 import styles from './GarageSalesAdmin.module.css';
 import CommunityQRCode from '../components/CommunityQRCode';
@@ -109,20 +110,7 @@ const GarageSalesAdmin = () => {
     }
   }, [fetchGarageSales, communityId]);
 
-  const parseAddress = (addressString) => {
-    // Example: "727 Balaton Ave, Pickering, ON"
-    const parts = addressString.split(',').map(part => part.trim());
-    const streetParts = parts[0].split(' ');
-    
-    return {
-      streetNumber: streetParts[0],
-      street: streetParts.slice(1).join(' '),
-      city: parts[1] || '',
-      state: parts[2] || '',
-      postalCode: '',
-      unit: ''
-    };
-  };
+  // Address parsing handled by parseAddressString utility
 
   const handleAddNew = () => {
     setEditingSale(null);
@@ -209,8 +197,8 @@ const GarageSalesAdmin = () => {
         
         // Check if address was updated
         if (formData.address !== editingSale.address) {
-          // Parse address components
-          const addressParts = parseAddress(formData.address);
+          // Parse address components using utility
+          const addressParts = parseAddressString(formData.address);
           updateData.address = {
             street: addressParts.street,
             streetNum: addressParts.streetNumber,
@@ -244,8 +232,8 @@ const GarageSalesAdmin = () => {
           await api.updateGarageSale(editingSale.id, updateData);
         }
       } else {
-        // Parse the address from the form
-        const addressData = parseAddress(formData.address);
+        // Parse the address from the form using utility
+        const addressData = parseAddressString(formData.address);
         
         // Create the sale data object with all required fields
         const saleData = {

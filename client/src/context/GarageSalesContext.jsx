@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import api from '../utils/api';
+import { formatSimpleAddress } from '../utils/addressFormatter';
 import { logger } from '../utils/logger';
 
 const GarageSalesContext = createContext();
@@ -70,9 +71,7 @@ export function GarageSalesProvider({ children }) {
 
       if (response && response.data) {
         const processedData = response.data.map(sale => {
-          const address = sale.address ? 
-            `${sale.address.streetNum} ${sale.address.street}` : 
-            'Address not available';
+          const address = formatSimpleAddress(sale.address);
 
           // Extract position data, ensuring we have valid numbers
           const position = {

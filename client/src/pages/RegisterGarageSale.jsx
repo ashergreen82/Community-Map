@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '../context/NavigationContext';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
+import { parseStreetAddress } from '../utils/addressFormatter';
 import './RegisterGarageSale.css'; // Use dedicated CSS for this component
 import api from '../utils/api';
 import { logger } from '../utils/logger';
@@ -207,22 +208,7 @@ const RegisterGarageSale = () => {
         const time = isEndDate ? '18:00:00' : '09:00:00';
         return `${dateString}T${time}`;
       };
-      
-      // Parse street number and name from the full street address
-      const parseStreetAddress = (address) => {
-        if (!address) return { streetNum: '', street: '' };
-        
-        // Match the first sequence of digits at the start of the string
-        const match = address.match(/^(\d+)\s*(.*)/);
-        if (match) {
-          return {
-            streetNum: match[1],
-            street: match[2].trim()
-          };
-        }
-        return { streetNum: '', street: address };
-      };
-      
+      // Parse street number and name using utility function
       const { streetNum, street } = parseStreetAddress(formData.street);
       
       // Debug user info
