@@ -51,7 +51,8 @@ const GarageSalesAdmin = () => {
   const [formData, setFormData] = useState({
     address: '',
     description: '',
-    featuredItems: []
+    featuredItems: [],
+    paymentTypes: []
   });
   const [submitError, setSubmitError] = useState(null);
   
@@ -116,7 +117,9 @@ const GarageSalesAdmin = () => {
     setEditingSale(null);
     setFormData({
       address: '',
-      description: ''
+      description: '',
+      featuredItems: [],
+      paymentTypes: []
     });
     setIsAddingNew(true);
     setSubmitError('');
@@ -128,7 +131,8 @@ const GarageSalesAdmin = () => {
     setFormData({
       address: sale.address,
       description: sale.description,
-      featuredItems: sale.featuredItems || []
+      featuredItems: sale.featuredItems || [],
+      paymentTypes: sale.paymentTypes || []
     });
     // Scroll to the top of the page to make the form visible
     window.scrollTo(0, 0);
@@ -138,7 +142,9 @@ const GarageSalesAdmin = () => {
     setEditingSale(null);
     setFormData({
       address: '',
-      description: ''
+      description: '',
+      featuredItems: [],
+      paymentTypes: []
     });
     setIsAddingNew(false);
   };
@@ -175,6 +181,38 @@ const GarageSalesAdmin = () => {
       ...prev,
       featuredItems: newItems
     }));
+  };
+
+  // Available payment types - matching backend format (uppercase)
+  const availablePaymentTypes = [
+    { display: 'Cash', value: 'CASH' },
+    { display: 'Visa', value: 'Visa' },
+    { display: 'Mastercard', value: 'MasterCard' },
+    { display: 'American Express', value: 'American Express' },
+    { display: 'Debit', value: 'Debit' },
+    { display: 'Email Transfer', value: 'Email Transfer' }
+  ];
+
+  // Handle toggling a payment type checkbox
+  const handlePaymentTypeToggle = (paymentType) => {
+    setFormData(prev => {
+      const currentTypes = prev.paymentTypes || [];
+      const isSelected = currentTypes.includes(paymentType);
+      
+      if (isSelected) {
+        // Remove the payment type
+        return {
+          ...prev,
+          paymentTypes: currentTypes.filter(type => type !== paymentType)
+        };
+      } else {
+        // Add the payment type
+        return {
+          ...prev,
+          paymentTypes: [...currentTypes, paymentType]
+        };
+      }
+    });
   };
 
   const handleAddressSelect = (selected) => {
@@ -227,6 +265,19 @@ const GarageSalesAdmin = () => {
           updateData.highlightedItems = currentFeaturedItems;
         }
         
+        // Check if payment types were updated
+        const currentPaymentTypes = formData.paymentTypes?.filter(type => type.trim() !== '') || [];
+        const existingPaymentTypes = editingSale.paymentTypes || [];
+        
+        // Check if payment types have changed (order-insensitive comparison)
+        const paymentTypesChanged = 
+          currentPaymentTypes.length !== existingPaymentTypes.length ||
+          !currentPaymentTypes.every(type => existingPaymentTypes.includes(type));
+          
+        if (paymentTypesChanged) {
+          updateData.paymentTypes = currentPaymentTypes;
+        }
+        
         // Only make the API call if there are changes to update (community ID is always included)
         if (Object.keys(updateData).length > 1) { // More than just communityId
           await api.updateGarageSale(editingSale.id, updateData);
@@ -248,6 +299,7 @@ const GarageSalesAdmin = () => {
           },
           description: formData.description || 'GARAGE SALE',
           highlightedItems: formData.featuredItems || [], // Use featured items from form
+          paymentTypes: formData.paymentTypes?.filter(type => type.trim() !== '') || [],
           name: formData.name || 'Garage Sale',
           community: communityId || 'GENPUB',
           userId: userInfo?.id || userInfo?.userId || 'anonymous', // Ensure we have a fallback user ID
@@ -288,7 +340,8 @@ const GarageSalesAdmin = () => {
       setFormData({
         address: '',
         description: '',
-        featuredItems: []
+        featuredItems: [],
+        paymentTypes: []
       });
       // Force refresh the list after adding/editing with the current community ID
       await fetchGarageSales(communityId, true);
@@ -701,6 +754,22 @@ const GarageSalesAdmin = () => {
             </button>
           </div>
 
+          <div className={styles.formGroup}>
+            <label>Payment Types Accepted</label>
+            <div className={styles.checkboxGroup}>
+              {availablePaymentTypes.map((paymentType) => (
+                <label key={paymentType.value} className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={formData.paymentTypes?.includes(paymentType.value) || false}
+                    onChange={() => handlePaymentTypeToggle(paymentType.value)}
+                  />
+                  <span>{paymentType.display}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className={styles.formActions}>
             <button type="submit" className={styles.saveButton}>
               {editingSale ? 'Save Changes' : 'Create Garage Sale'}
@@ -735,6 +804,18 @@ const GarageSalesAdmin = () => {
                     {sale.featuredItems.map((item, index) => (
                       <span key={index} className={styles.featuredItem}>
                         {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {sale.paymentTypes?.length > 0 && (
+                <div className={styles.featuredItemsContainer}>
+                  <div className={styles.featuredItemsLabel}>Payment Types:</div>
+                  <div className={styles.featuredItemsList}>
+                    {sale.paymentTypes.map((type, index) => (
+                      <span key={index} className={styles.featuredItem}>
+                        {type}
                       </span>
                     ))}
                   </div>
