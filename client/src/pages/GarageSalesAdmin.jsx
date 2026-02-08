@@ -34,14 +34,6 @@ const GarageSalesAdmin = () => {
     skipIfExists: true
   });
   
-  // State for query param only
-  const queryParams = new URLSearchParams(location.search);
-  const id = queryParams.get('communityId');
-  logger.warn('[GarageSalesAdmin] Extracted communityId from URL:', id);
-  // Use only context variables for communityId and communityName
-  // If you need to update them, use the context setters
-  // Remove local state to avoid redeclaration errors
-  
   // Create a separate state for admin selections
   const [adminSelectedSales, setAdminSelectedSales] = useState(new Set());
   
@@ -70,7 +62,9 @@ const GarageSalesAdmin = () => {
     logger.log('[GarageSalesAdmin] Context values:', { communityName, communityId });
     
     // Get communityId from URL or context
+    const queryParams = new URLSearchParams(location.search);
     const newId = queryParams.get('communityId') || communityId;
+    logger.log('[GarageSalesAdmin] Extracted communityId from URL:', newId);
     if (newId && newId !== communityId) {
       logger.log('[GarageSalesAdmin] Community ID changed, updating context:', newId);
       if (typeof setCommunityId === 'function') setCommunityId(newId);
