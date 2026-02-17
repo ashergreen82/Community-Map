@@ -574,6 +574,52 @@ const GarageSalesAdmin = () => {
 
 
 
+  // Export all garage sale addresses to CSV
+  const handleExportCSV = async () => {
+    if (!garageSales || garageSales.length === 0) {
+      alert('No garage sales to export.');
+      return;
+    }
+
+    const headers = ['Address', 'Description', 'Featured Items', 'Payment Types'];
+    const rows = garageSales.map(sale => [
+      `"${(sale.address || '').replace(/"/g, '""')}"`,
+      `"${(sale.description || '').replace(/"/g, '""')}"`,
+      `"${(sale.featuredItems || []).join(', ').replace(/"/g, '""')}"`,
+      `"${(sale.paymentTypes || []).join(', ').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const defaultName = `${communityName || 'garage-sales'}-addresses.csv`;
+
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: defaultName,
+          startIn: 'downloads',
+          types: [{
+            description: 'CSV File',
+            accept: { 'text/csv': ['.csv'] }
+          }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(csvContent);
+        await writable.close();
+      } catch (pickerErr) {
+        if (pickerErr.name === 'AbortError') return;
+        logger.error('[GarageSalesAdmin] Error saving CSV:', pickerErr);
+      }
+    } else {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = defaultName;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
   // Return to the community sales admin page
   const handleBackToCommunitySales = () => {
     navigate('/admin/community-sales');
@@ -686,6 +732,14 @@ const GarageSalesAdmin = () => {
             onClick={handleBackToCommunitySales}
           >
             Back to Community Sales
+          </button>
+          
+          <button 
+            className={styles.exportCsvButton}
+            onClick={handleExportCSV}
+            disabled={!garageSales || garageSales.length === 0}
+          >
+            Export CSV
           </button>
         </div>
       </div>

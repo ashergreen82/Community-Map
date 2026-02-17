@@ -186,6 +186,28 @@
   background-color: #3367d6;
 }
 
+.exportCsvButton {
+  padding: 10px 20px;
+  background-color: #0d904f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.exportCsvButton:hover {
+  background-color: #0a7a42;
+}
+
+.exportCsvButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 .garageForm {
   background-color: #f9f9f9;
   padding: 20px;

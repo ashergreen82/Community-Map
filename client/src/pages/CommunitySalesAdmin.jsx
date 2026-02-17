@@ -490,6 +490,72 @@ const CommunitySalesAdmin = () => {
     navigate(`/admin/sales?communityId=${sale.id}`);
   };
 
+  // Export garage sale addresses for a specific community sale to CSV
+  const handleExportCSV = async (sale) => {
+    try {
+      const response = await api.getAddressesByCommunity(sale.id);
+      const garageSales = response?.data || [];
+
+      if (!garageSales.length) {
+        alert('No garage sales found for this community event.');
+        return;
+      }
+
+      const formatAddress = (addr) => {
+        if (!addr) return '';
+        const parts = [
+          addr.streetNum,
+          addr.street,
+          addr.city,
+          addr.provState,
+          addr.postalZipCode
+        ].filter(Boolean);
+        return parts.join(' ');
+      };
+
+      const headers = ['Address', 'Description', 'Featured Items', 'Payment Types'];
+      const rows = garageSales.map(gs => [
+        `"${(formatAddress(gs.address) || '').replace(/"/g, '""')}"`,
+        `"${(gs.description || '').replace(/"/g, '""')}"`,
+        `"${(gs.highlightedItems || []).join(', ').replace(/"/g, '""')}"`,
+        `"${(gs.paymentTypes || []).join(', ').replace(/"/g, '""')}"`
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      const defaultName = `${sale.name || 'garage-sales'}-addresses.csv`;
+
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: defaultName,
+            startIn: 'downloads',
+            types: [{
+              description: 'CSV File',
+              accept: { 'text/csv': ['.csv'] }
+            }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(csvContent);
+          await writable.close();
+        } catch (pickerErr) {
+          if (pickerErr.name === 'AbortError') return;
+          throw pickerErr;
+        }
+      } else {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = defaultName;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      logger.error('[CommunitySalesAdmin] Error exporting CSV:', err);
+      alert('Failed to export garage sales. Please try again.');
+    }
+  };
+
   // Handle viewing a community sale on the map
   const handleViewOnMap = (sale) => {
     // Store the community sale name and ID in the context
@@ -721,6 +787,12 @@ const CommunitySalesAdmin = () => {
                     onClick={() => handleManageSale(sale)}
                   >
                     Manage Garage Sales
+                  </button>
+                  <button 
+                    className="export-csv-button"
+                    onClick={() => handleExportCSV(sale)}
+                  >
+                    Export CSV
                   </button>
                 </div>
               </div>
