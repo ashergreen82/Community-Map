@@ -1,13 +1,16 @@
 # Integrations Index
 
-**Keywords**: maps API, PATCH, paymentTypes, socialAndWeb, ERR_MAPS001, duplicate, createAddress
-- [Maps Management API](./maps-api.md) — backend sale records; update payloads, duplicate-check scoping
+**Keywords**: maps API, PATCH, socialAndWeb, updateAddress
+- [Maps Management API](./maps-api.md) — client setup; update payloads
+
+**Keywords**: createAddress, paymentTypes, ERR_MAPS001, ERR_MAPS002, duplicate, GENPUB
+- [POST createAddress](./create-address.md) — required fields; duplicates
 
 **Keywords**: images, Cloudinary, upload, unsigned preset, publicId
-- [Cloudinary Integration](./cloudinary.md) — frontend-direct image upload; env vars and unsigned preset setup
+- [Cloudinary Integration](./cloudinary.md) — frontend-direct upload
 
 **Keywords**: Google Maps, gm-style, z-index, isCompactView, AdvancedMarkerElement
-- [Google Maps JS API](./google-maps.md) — control layout; z-index; AdvancedMarkerElement
+- [Google Maps JS API](./google-maps.md) — control layout; z-index
 
 **Keywords**: InfoWindow, markerElementsRef, select, showOnlySelected, visibility
-- [InfoWindow](./infowindow.md) — auth-gating, × CSS alignment, markerElementsRef pattern, showOnlySelected visibility
+- [InfoWindow](./infowindow.md) — auth-gating; × CSS

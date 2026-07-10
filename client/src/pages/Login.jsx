@@ -17,6 +17,13 @@ import ReactGA from 'react-ga4';
 import './Login.css';
 import { logger } from '../utils/logger';
 
+// Read and clear the stored returnTo; only allow same-origin relative paths
+const consumeReturnTo = (search) => {
+  const returnTo = new URLSearchParams(search).get('returnTo') || sessionStorage.getItem('returnTo');
+  sessionStorage.removeItem('returnTo');
+  return returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : null;
+};
+
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,6 +45,14 @@ const Login = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Persist returnTo in sessionStorage so it survives the Google OAuth round-trip
+  useEffect(() => {
+    const returnToParam = new URLSearchParams(location.search).get('returnTo');
+    if (returnToParam) {
+      sessionStorage.setItem('returnTo', returnToParam);
+    }
+  }, [location]);
 
   // Check for Google auth callback or password reset token
   useEffect(() => {
@@ -72,10 +87,11 @@ const Login = () => {
           // Force a delay to ensure context is properly loaded
           logger.log('[Login] GOOGLE AUTH: Authentication complete, preparing navigation');
 
-          // Always navigate to community sales admin after Google login
-          // This is a direct approach that bypasses the initial page checking
-          logger.log('[Login] GOOGLE AUTH: Navigating to /admin/community-sales');
-          navigate('/admin/community-sales');
+          // Honor a pending returnTo (e.g. a shared registration link), otherwise
+          // navigate to community sales admin after Google login
+          const googleReturnTo = consumeReturnTo(location.search);
+          logger.log('[Login] GOOGLE AUTH: Navigating to', googleReturnTo || '/admin/community-sales');
+          navigate(googleReturnTo || '/admin/community-sales');
         } catch (err) {
           setError('Failed to authenticate with Google. Please try again.');
           logger.error('[Login] Google authentication error:', err);
@@ -145,8 +161,11 @@ const Login = () => {
           label: 'Email/Password'
         });
 
-        // Use the initial page tracker to determine where to navigate
-        if (wasInitialPageAbout()) {
+        // Honor a pending returnTo first, then fall back to the initial page tracker
+        const loginReturnTo = consumeReturnTo(location.search);
+        if (loginReturnTo) {
+          navigate(loginReturnTo);
+        } else if (wasInitialPageAbout()) {
           // If they started on the about/landing page, go to Manage Community Sales
           navigate('/admin/community-sales');
         } else if (wasInitialPageMap()) {
@@ -226,8 +245,11 @@ const Login = () => {
           action: 'Register',
           label: 'Email/Password'
         });
-        // Use the initial page tracker to determine where to navigate
-        if (wasInitialPageAbout()) {
+        // Honor a pending returnTo first, then fall back to the initial page tracker
+        const registerReturnTo = consumeReturnTo(location.search);
+        if (registerReturnTo) {
+          navigate(registerReturnTo);
+        } else if (wasInitialPageAbout()) {
           // If they started on the about/landing page, go to Manage Community Sales
           navigate('/admin/community-sales');
         } else if (wasInitialPageMap()) {

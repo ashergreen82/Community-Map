@@ -1,6 +1,6 @@
 # Community Sales Registration Link
 
-Coordinators (admins who manage a community sales event) can share a self-registration link with homeowners so homeowners submit their own garage sale listings without coordinator manual entry.
+Coordinators (admins managing a community sales event) share a self-registration link so homeowners submit their own garage sale listings without coordinator manual entry.
 
 ## How It Works
 
@@ -14,17 +14,19 @@ Coordinators (admins who manage a community sales event) can share a self-regist
 
 4. Coordinator shares the link (email, Nextdoor, Facebook, etc.) with homeowners in the neighborhood
 
-## Homeowner Flow (CSE-135b — pending)
+## Homeowner Flow (CSE-137 — live)
 
-Once the homeowner visits the link:
-- They are prompted to log in if not already authenticated
-- The registration form pre-fills with their existing submission (if any)
-- They can create, edit, or delete their own listing
-- Their listing immediately appears in the event on the map
+Visiting the link (`/register-garage-sale/:communityId`, page: `RegisterCommunityGarageSale.jsx`):
+- Not logged in → `/login?returnTo=/register-garage-sale/{communityId}`; after login they land back on the form (see [Login returnTo](../architecture/login-return-to.md))
+- Event name/dates header card — from `/v1/communitySales/all`, matched by id client-side (no single-event endpoint)
+- Form pre-fills with the homeowner's existing submission for this community (matched by `userId`); create/edit/delete their own listing
+- Edit success does a full page reload (same as GENPUB form)
+- Payload sends `community: {communityId}` and `paymentTypes: []` (required — see [createAddress](../architecture/integrations/create-address.md))
+- Listing appears in the event on the map and in GarageSalesAdmin like any coordinator-entered sale
 
 ## Notes
 
 - "Coordinator" is an informal name for an admin managing a specific community event; there is no separate coordinator role in the system
 - Admins only see events they manage, so the button showing on every card is effectively per-coordinator scoped
-- If the clipboard write fails (e.g., HTTP context, browser permission denied), a prompt dialog opens with the URL pre-filled for manual copying
-- The registration page at `/register-garage-sale/:communityId` is pending implementation (CSE-135b)
+- If clipboard write fails (HTTP context, permission denied), a prompt dialog opens with the URL for manual copying
+- The GENPUB form (`/register-garage-sale`, no communityId) is a separate flow for standalone individual sales not connected to any community event — not part of this link-sharing feature
