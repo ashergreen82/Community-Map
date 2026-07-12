@@ -24,6 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import QrCodeIcon from '@mui/icons-material/QrCode';
 import MapIcon from '@mui/icons-material/Map';
 import DownloadIcon from '@mui/icons-material/Download';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useAuth } from '../context/AuthContext';
 import { useCommunitySales } from '../context/CommunitySalesContext';
 import api from '../utils/api';
@@ -115,6 +116,7 @@ const CommunitySalesAdmin = () => {
 
   const [selectedSales, setSelectedSales] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
+  const [copiedSaleId, setCopiedSaleId] = useState(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
   const [formData, setFormData] = useState({
@@ -625,6 +627,17 @@ const CommunitySalesAdmin = () => {
     }
   };
 
+  // Copy homeowner registration link for this event to clipboard
+  const handleCopyRegistrationLink = (sale) => {
+    const url = window.location.origin + '/register-garage-sale/' + sale.id;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedSaleId(sale.id);
+      setTimeout(() => setCopiedSaleId(null), 2000);
+    }).catch(() => {
+      window.prompt('Copy this registration link:', url);
+    });
+  };
+
   // Handle viewing a community sale on the map
   const handleViewOnMap = (sale) => {
     // Store the community sale name and ID in the context
@@ -885,6 +898,20 @@ const CommunitySalesAdmin = () => {
                       title="Generate QR Code"
                     >
                       QR Code
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="info"
+                      size="small"
+                      className="copy-reg-link-button"
+                      startIcon={<ContentCopyIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyRegistrationLink(sale);
+                      }}
+                      title="Copy homeowner registration link"
+                    >
+                      {copiedSaleId === sale.id ? 'Copied!' : 'Copy Reg. Link'}
                     </Button>
                     <Button
                       variant="outlined"

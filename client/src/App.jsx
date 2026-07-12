@@ -19,6 +19,7 @@ import PasswordReset from './pages/PasswordReset';
 import GarageSales from './pages/GarageSales';
 import SingleGarageSales from './pages/SingleGarageSales';
 import RegisterGarageSale from './pages/RegisterGarageSale';
+import RegisterCommunityGarageSale from './pages/RegisterCommunityGarageSale';
 import GarageSalesAdmin from './pages/GarageSalesAdmin';
 import GarageSalesBulkUpload from './pages/GarageSalesBulkUpload';
 import CommunitySalesAdmin from './pages/CommunitySalesAdmin';
@@ -39,8 +40,9 @@ const DashboardRoute = ({ children }) => (
 
 const ProtectedDashboardRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`/login?returnTo=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }
   return <DashboardLayout>{children}</DashboardLayout>;
 };
@@ -177,6 +179,9 @@ function App() {
                           } />
                           <Route path="/register-garage-sale" element={
                             <ProtectedDashboardRoute><RegisterGarageSale /></ProtectedDashboardRoute>
+                          } />
+                          <Route path="/register-garage-sale/:communityId" element={
+                            <ProtectedDashboardRoute><RegisterCommunityGarageSale /></ProtectedDashboardRoute>
                           } />
                         </Routes>
                       </div>

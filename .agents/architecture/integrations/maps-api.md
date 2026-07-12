@@ -24,10 +24,4 @@ socialAndWeb: { fb: val || null, instagram: val || null, website: val || null }
 
 ## POST /v1/createAddress
 
-Creates a sale in a community. `community` field values:
-- **UUID** — a neighbourhood event (admin-managed)
-- **`GENPUB`** — standalone individual sale (public `/register-garage-sale`); not part of any event; find user's sale by matching `userId`
-
-**Duplicate detection (community-scoped):** same address in same community → `HTTP 400 { code: "ERR_MAPS001", errorMsg: "Existing Address" }`. `api.js` converts this to `new Error('A garage sale already exists at this address')`, which both forms display. Same address is allowed in different communities.
-
-**Status (CSE-125/CSE-128):** Backend currently accepts duplicates silently. Frontend mitigation: `GarageSalesAdmin.jsx` pre-checks the loaded sales list before the API call; `RegisterGarageSale.jsx` fixed a nested try-catch that swallowed the specific error. Jamie to add community+address unique constraint.
+See [createAddress](./create-address.md) — `community` values (UUID vs GENPUB), required `paymentTypes`, duplicate detection.
