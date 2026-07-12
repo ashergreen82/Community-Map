@@ -245,7 +245,7 @@ const ListActiveCommunitySalesEvents = () => {
                       </Stack>
                     </Box>
 
-                    {isManagedByUser && (
+                    {isManagedByUser ? (
                       <Button
                         variant="outlined"
                         size="small"
@@ -253,6 +253,16 @@ const ListActiveCommunitySalesEvents = () => {
                         sx={{ ml: 2, flexShrink: 0 }}
                       >
                         Manage
+                      </Button>
+                    ) : (
+                      // Homeowner: manage their own garage sale in this event — same page as the registration link
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/register-garage-sale/${sale.id}`); }}
+                        sx={{ ml: 2, flexShrink: 0 }}
+                      >
+                        My Garage Sale
                       </Button>
                     )}
                   </Stack>
