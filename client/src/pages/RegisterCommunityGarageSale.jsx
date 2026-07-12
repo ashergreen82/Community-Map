@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '../context/NavigationContext';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
 import { parseStreetAddress } from '../utils/addressFormatter';
+import { uploadImageToCloudinary } from '../utils/imageUpload';
 import './RegisterGarageSale.css';
 import api from '../utils/api';
 import { logger } from '../utils/logger';
@@ -44,20 +45,19 @@ const RegisterCommunityGarageSale = () => {
   // Community event info
   const [communityEvent, setCommunityEvent] = useState(null);
 
-  // Form state
+  // Form state — same fields as the manager's GarageSalesAdmin form
   const [formData, setFormData] = useState({
-    name: '',
     description: '',
     street: '',
     unit: '',
     city: '',
     provState: '',
     postalZipCode: '',
-    startDate: '',
-    endDate: '',
     fb: '',
     instagram: '',
-    website: ''
+    website: '',
+    paymentTypes: [],
+    images: []
   });
 
   // Featured items as separate array
@@ -65,6 +65,7 @@ const RegisterCommunityGarageSale = () => {
 
   // Additional state
   const [loading, setLoading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [existingSale, setExistingSale] = useState(null);
@@ -122,18 +123,17 @@ const RegisterCommunityGarageSale = () => {
             setExistingSale(userSale);
 
             setFormData({
-              name: userSale.name || '',
               description: userSale.description || '',
               street: userSale.address?.street || '',
               unit: userSale.address?.unit || '',
               city: userSale.address?.city || '',
               provState: userSale.address?.provState || '',
               postalZipCode: userSale.address?.postalZipCode || '',
-              startDate: userSale.startDate || '',
-              endDate: userSale.endDate || '',
               fb: userSale.socialAndWeb?.fb || '',
               instagram: userSale.socialAndWeb?.instagram || '',
-              website: userSale.socialAndWeb?.website || ''
+              website: userSale.socialAndWeb?.website || '',
+              paymentTypes: userSale.paymentTypes || [],
+              images: userSale.images || []
             });
             setFeaturedItems(userSale.highlightedItems || ['']);
           }
@@ -161,6 +161,60 @@ const RegisterCommunityGarageSale = () => {
     if (name === 'street' && selectedPlace) {
       setSelectedPlace(null);
     }
+  };
+
+  // Available payment types - matching backend format (same list as GarageSalesAdmin)
+  const availablePaymentTypes = [
+    { display: 'Cash', value: 'Cash' },
+    { display: 'Visa', value: 'Visa' },
+    { display: 'Mastercard', value: 'MasterCard' },
+    { display: 'American Express', value: 'American Express' },
+    { display: 'Debit', value: 'Debit' },
+    { display: 'Email Transfer', value: 'Email Transfer' }
+  ];
+
+  // Handle toggling a payment type checkbox
+  const handlePaymentTypeToggle = (paymentType) => {
+    setFormData(prev => {
+      const currentTypes = prev.paymentTypes || [];
+      return {
+        ...prev,
+        paymentTypes: currentTypes.includes(paymentType)
+          ? currentTypes.filter(type => type !== paymentType)
+          : [...currentTypes, paymentType]
+      };
+    });
+  };
+
+  const handleImageAdd = async (file) => {
+    setImageUploading(true);
+    try {
+      const { url, publicId } = await uploadImageToCloudinary(file);
+      setFormData(prev => ({
+        ...prev,
+        images: [...(prev.images || []), { description: '', url, publicId }]
+      }));
+    } catch (err) {
+      logger.error('[RegisterCommunityGarageSale] Image upload failed:', err);
+      setError('Image upload failed. Please try again.');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleImageRemove = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleImageDescriptionChange = (index, value) => {
+    setFormData(prev => {
+      const updated = [...(prev.images || [])];
+      updated[index] = { ...updated[index], description: value };
+      return { ...prev, images: updated };
+    });
   };
 
   // Handle address selection from Google Places Autocomplete
@@ -257,18 +311,26 @@ const RegisterCommunityGarageSale = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Sale dates come from the community event, so it must be loaded before submitting
+    if (!communityEvent) {
+      setError('Community event details are still loading. Please try again in a moment.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     let innerErrorHandled = false;
     try {
-      // Format dates for API - convert YYYY-MM-DD to ISO datetime format
+      // Format dates for API - convert to ISO datetime format
       const formatDateForAPI = (dateString, isEndDate = false) => {
         if (!dateString) return null;
 
         // For start date, use 9:00 AM; for end date, use 6:00 PM
+        const [datePart] = dateString.split('T');
         const time = isEndDate ? '18:00:00' : '09:00:00';
-        return `${dateString}T${time}`;
+        return `${datePart}T${time}`;
       };
       // Parse street number and name using utility function
       const { streetNum, street } = parseStreetAddress(formData.street);
@@ -282,7 +344,8 @@ const RegisterCommunityGarageSale = () => {
       }
 
       const saleData = {
-        name: formData.name.trim() || "Garage Sale",
+        // No name field on either registration form; keep any name already on the record
+        name: existingSale?.name || "Garage Sale",
         description: formData.description || "",
         address: {
           streetNum: streetNum,
@@ -293,11 +356,12 @@ const RegisterCommunityGarageSale = () => {
           postalZipCode: formData.postalZipCode || ""
         },
         highlightedItems: featuredItems.filter(item => item.trim() !== ''),
-        // Backend requires paymentTypes as an array on createAddress (ERR_MAPS002 without it)
-        paymentTypes: [],
+        paymentTypes: (formData.paymentTypes || []).filter(type => type.trim() !== ''),
+        images: formData.images || [],
+        // Dates are dictated by the community event rather than entered by the homeowner
         dateTime: {
-          start: formatDateForAPI(formData.startDate, false),
-          end: formatDateForAPI(formData.endDate || formData.startDate, true),
+          start: formatDateForAPI(communityEvent.startDate, false),
+          end: formatDateForAPI(communityEvent.endDate || communityEvent.startDate, true),
           timezone: "America/Toronto"
         },
         community: communityId,
@@ -397,18 +461,17 @@ const RegisterCommunityGarageSale = () => {
       // Clear form if it was a new garage sale
       if (!isEditing) {
         setFormData({
-          name: 'Garage Sale',
           description: '',
           street: '',
           unit: '',
           city: '',
           provState: '',
           postalZipCode: '',
-          startDate: '',
-          endDate: '',
           fb: '',
           instagram: '',
-          website: ''
+          website: '',
+          paymentTypes: [],
+          images: []
         });
         setFeaturedItems(['']);
       }
@@ -429,7 +492,6 @@ const RegisterCommunityGarageSale = () => {
 
     if (existingSale) {
       setFormData({
-        name: existingSale.name || '',
         description: existingSale.description || '',
         street: existingSale.address?.streetNum && existingSale.address?.street
           ? `${existingSale.address.streetNum} ${existingSale.address.street}`
@@ -438,11 +500,11 @@ const RegisterCommunityGarageSale = () => {
         city: existingSale.address?.city || '',
         provState: existingSale.address?.provState || '',
         postalZipCode: existingSale.address?.postalZipCode || '',
-        startDate: existingSale.dateTime?.start ? existingSale.dateTime.start.split('T')[0] : '',
-        endDate: existingSale.dateTime?.end ? existingSale.dateTime.end.split('T')[0] : '',
         fb: existingSale.socialAndWeb?.fb || '',
         instagram: existingSale.socialAndWeb?.instagram || '',
-        website: existingSale.socialAndWeb?.website || ''
+        website: existingSale.socialAndWeb?.website || '',
+        paymentTypes: existingSale.paymentTypes || [],
+        images: existingSale.images || []
       });
       setFeaturedItems(existingSale.highlightedItems || ['']);
     }
@@ -470,18 +532,17 @@ const RegisterCommunityGarageSale = () => {
       setExistingSale(null);
 
       setFormData({
-        name: 'Garage Sale',
         description: '',
         street: '',
         unit: '',
         city: '',
         provState: '',
         postalZipCode: '',
-        startDate: '',
-        endDate: '',
         fb: '',
         instagram: '',
-        website: ''
+        website: '',
+        paymentTypes: [],
+        images: []
       });
       setFeaturedItems(['']);
       setIsEditing(false);
@@ -538,38 +599,18 @@ const RegisterCommunityGarageSale = () => {
         }
       }
 
-      // Parse dates properly
-      let startDate = '';
-      let endDate = '';
-
-      if (existingSale.dateTime?.start) {
-        // Handle both ISO format and date-only format
-        const startDateObj = new Date(existingSale.dateTime.start);
-        if (!isNaN(startDateObj.getTime())) {
-          startDate = startDateObj.toISOString().split('T')[0];
-        }
-      }
-
-      if (existingSale.dateTime?.end) {
-        const endDateObj = new Date(existingSale.dateTime.end);
-        if (!isNaN(endDateObj.getTime())) {
-          endDate = endDateObj.toISOString().split('T')[0];
-        }
-      }
-
       setFormData({
-        name: existingSale.name || 'Garage Sale',
         description: existingSale.description || '',
         street: fullStreetAddress,
         unit: existingSale.address?.unit || '',
         city: existingSale.address?.city || '',
         provState: existingSale.address?.provState || '',
         postalZipCode: existingSale.address?.postalZipCode || '',
-        startDate,
-        endDate,
         fb: existingSale.socialAndWeb?.fb || '',
         instagram: existingSale.socialAndWeb?.instagram || '',
-        website: existingSale.socialAndWeb?.website || ''
+        website: existingSale.socialAndWeb?.website || '',
+        paymentTypes: existingSale.paymentTypes || [],
+        images: existingSale.images || []
       });
 
       // Pre-fill featured items - ensure we always have at least one empty field for adding new items
@@ -675,6 +716,26 @@ const RegisterCommunityGarageSale = () => {
                   : 'None'}
               </Typography>
 
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Payment Types:</strong>{' '}
+                {existingSale.paymentTypes && existingSale.paymentTypes.length > 0
+                  ? existingSale.paymentTypes.join(', ')
+                  : 'None'}
+              </Typography>
+
+              {existingSale.images && existingSale.images.length > 0 && (
+                <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
+                  {existingSale.images.map((img, index) => (
+                    <img
+                      key={index}
+                      src={img.url}
+                      alt={img.description || `Image ${index + 1}`}
+                      className="image-preview"
+                    />
+                  ))}
+                </Stack>
+              )}
+
               <Stack direction="row" spacing={2}>
                 <Typography variant="body2" color="text.secondary">
                   <strong>Start:</strong> {new Date(existingSale.dateTime.start).toLocaleDateString()}
@@ -697,64 +758,6 @@ const RegisterCommunityGarageSale = () => {
         </Box>
       ) : (
         <form className="garage-sale-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="name">Garage Sale Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              placeholder="e.g., Spring Cleaning Sale"
-              className={formData.name === 'Garage Sale' ? 'default-name' : ''}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="description">Description</label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Describe your garage sale..."
-              rows={4}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Featured Items</label>
-            {featuredItems.map((item, index) => (
-              <div
-                key={index}
-                className="featured-item-input"
-              >
-                <input
-                  type="text"
-                  value={item}
-                  onChange={(e) => handleFeaturedItemChange(e, index)}
-                  placeholder="e.g., Furniture, Electronics, Toys"
-                />
-                {featuredItems.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveFeaturedItem(index)}
-                    className="remove-item-button"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={handleAddFeaturedItem}
-              className="add-item-button"
-            >
-              + Add item
-            </button>
-          </div>
-
           {/* Street Address */}
           <div className="form-row">
             <div className="form-group" style={{ width: '100%' }}>
@@ -879,28 +882,116 @@ const RegisterCommunityGarageSale = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="startDate">
-              Start Date <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              type="date"
-              id="startDate"
-              name="startDate"
-              value={formData.startDate}
+            <label htmlFor="description">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
               onChange={handleInputChange}
-              required
+              placeholder="Describe your garage sale..."
+              rows={4}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="endDate">End Date</label>
-            <input
-              type="date"
-              id="endDate"
-              name="endDate"
-              value={formData.endDate}
-              onChange={handleInputChange}
-            />
+            <label>Images</label>
+            <div className="image-upload-section">
+              {(formData.images || []).map((img, index) => (
+                <div key={index} className="image-preview-item">
+                  <img
+                    src={img.url}
+                    alt={img.description || `Image ${index + 1}`}
+                    className="image-preview"
+                  />
+                  <input
+                    type="text"
+                    value={img.description}
+                    onChange={(e) => handleImageDescriptionChange(index, e.target.value)}
+                    placeholder="Caption (optional)"
+                    className="image-caption-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleImageRemove(index)}
+                    className="remove-item-button"
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <label className="image-upload-label">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={imageUploading}
+                  onChange={(e) => {
+                    Array.from(e.target.files).forEach(file => handleImageAdd(file));
+                    e.target.value = '';
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  component="span"
+                  disabled={imageUploading}
+                >
+                  {imageUploading ? 'Uploading…' : '+ Add Images'}
+                </Button>
+              </label>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Featured Items</label>
+            {featuredItems.map((item, index) => (
+              <div
+                key={index}
+                className="featured-item-input"
+              >
+                <input
+                  type="text"
+                  value={item}
+                  onChange={(e) => handleFeaturedItemChange(e, index)}
+                  placeholder="e.g., Furniture, Electronics, Toys"
+                />
+                {featuredItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFeaturedItem(index)}
+                    className="remove-item-button"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={handleAddFeaturedItem}
+              className="add-item-button"
+            >
+              + Add item
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label>Payment Types Accepted</label>
+            <div className="checkbox-group">
+              {availablePaymentTypes.map((paymentType) => (
+                <label key={paymentType.value} className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.paymentTypes?.includes(paymentType.value) || false}
+                    onChange={() => handlePaymentTypeToggle(paymentType.value)}
+                  />
+                  <span>{paymentType.display}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="form-group">
@@ -945,7 +1036,7 @@ const RegisterCommunityGarageSale = () => {
                 Cancel
               </Button>
             )}
-            <Button type="submit" variant="contained" disabled={loading}>
+            <Button type="submit" variant="contained" disabled={loading || !communityEvent}>
               {loading ? 'Saving...' : (isEditing ? 'Update Garage Sale' : 'Register Garage Sale')}
             </Button>
           </Stack>

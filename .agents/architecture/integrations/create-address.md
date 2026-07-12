@@ -7,9 +7,11 @@ Creates a sale in a community. Part of the [Maps Management API](./maps-api.md) 
 - **UUID** — a neighbourhood event (admin-managed)
 - **`GENPUB`** — standalone individual sale (public `/register-garage-sale`); not part of any event; find user's sale by matching `userId`
 
+For UUID (community-scoped) homeowner submissions, `RegisterCommunityGarageSale.jsx` derives `dateTime` from the event's `startDate`/`endDate` (start `T09:00:00`, end `T18:00:00`, America/Toronto) — homeowners don't enter dates. GENPUB submissions still send user-entered dates.
+
 ## Required: `paymentTypes` (array)
 
-Missing/non-array → `HTTP 400 { code: "ERR_MAPS002", fields: { paymentTypes: "PaymentTypes is missing or is not an array" } }`. Discovered 2026-07 during CSE-137; unconfirmed whether intentional — check with backend dev. Senders: `GarageSalesAdmin.jsx` (checkbox values), `RegisterCommunityGarageSale.jsx` (`[]` — homeowner form has no payment-type UI).
+Missing/non-array → `HTTP 400 { code: "ERR_MAPS002", fields: { paymentTypes: "PaymentTypes is missing or is not an array" } }`. Discovered 2026-07 during CSE-137; unconfirmed whether intentional — check with backend dev. Senders: `GarageSalesAdmin.jsx` and `RegisterCommunityGarageSale.jsx` (both send checkbox values; the forms share the same field set).
 
 > **Known bug**: `RegisterGarageSale.jsx` (GENPUB form) does not send `paymentTypes`, so its submissions 400 against the current dev backend. Needs a ticket.
 

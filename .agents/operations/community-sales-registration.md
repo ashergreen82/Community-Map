@@ -1,32 +1,27 @@
 # Community Sales Registration Link
 
-Coordinators (admins managing a community sales event) share a self-registration link so homeowners submit their own garage sale listings without coordinator manual entry.
+Coordinators (admins managing a community sales event) share a self-registration link so homeowners submit their own garage sale listings.
 
 ## How It Works
 
-1. Coordinator opens **CommunitySalesAdmin** (`/admin/community-sales`)
-2. On any event card, click **Copy Reg. Link**
-3. Link is copied to clipboard in the format:
-
-   ```
-   {origin}/register-garage-sale/{communityId}
-   ```
-
-4. Coordinator shares the link (email, Nextdoor, Facebook, etc.) with homeowners in the neighborhood
+1. In **CommunitySalesAdmin** (`/admin/community-sales`), click **Copy Reg. Link** on an event card
+2. Clipboard gets `{origin}/register-garage-sale/{communityId}`
+3. Coordinator shares the link (email, Nextdoor, Facebook, etc.) with homeowners
 
 ## Homeowner Flow (CSE-137 — live)
 
 Visiting the link (`/register-garage-sale/:communityId`, page: `RegisterCommunityGarageSale.jsx`):
-- Not logged in → `/login?returnTo=/register-garage-sale/{communityId}`; after login they land back on the form (see [Login returnTo](../architecture/login-return-to.md))
+- Not logged in → `/login?returnTo=...`, then back to the form ([Login returnTo](../architecture/login-return-to.md))
 - Event name/dates header card — from `/v1/communitySales/all`, matched by id client-side (no single-event endpoint)
-- Form pre-fills with the homeowner's existing submission for this community (matched by `userId`); create/edit/delete their own listing
+- No date fields (CSE-136 follow-up): `dateTime` derives from the event's start/end dates (`T09:00:00`/`T18:00:00`, America/Toronto); submit disabled until the event loads; saving an edit overwrites divergent dates
+- Pre-fills the homeowner's existing submission for this community (matched by `userId`); they can create/edit/delete their own listing
 - Edit success does a full page reload (same as GENPUB form)
-- Payload sends `community: {communityId}` and `paymentTypes: []` (required — see [createAddress](../architecture/integrations/create-address.md))
-- Listing appears in the event on the map and in GarageSalesAdmin like any coordinator-entered sale
+- Fields mirror the admin form (address first; no name field); payload sends `community: {communityId}` and checkbox `paymentTypes` ([createAddress](../architecture/integrations/create-address.md))
+- Listing appears on the map and in GarageSalesAdmin like any coordinator-entered sale
 
 ## Notes
 
-- "Coordinator" is an informal name for an admin managing a specific community event; there is no separate coordinator role in the system
-- Admins only see events they manage, so the button showing on every card is effectively per-coordinator scoped
-- If clipboard write fails (HTTP context, permission denied), a prompt dialog opens with the URL for manual copying
-- The GENPUB form (`/register-garage-sale`, no communityId) is a separate flow for standalone individual sales not connected to any community event — not part of this link-sharing feature
+- "Coordinator" is informal — an admin managing a specific event; no separate role exists
+- Admins only see events they manage, so the button is effectively per-coordinator scoped
+- If clipboard write fails (HTTP context, permission denied), a prompt dialog shows the URL for manual copying
+- The GENPUB form (`/register-garage-sale`, no communityId) is a separate flow for standalone sales not tied to any event; homeowners there still enter their own dates
