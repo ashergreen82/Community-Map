@@ -36,7 +36,7 @@ import { useCommunitySales } from '../context/CommunitySalesContext';
 import { useCommunityName } from '../hooks/useCommunityName';
 import AutoResizeTextArea from '../components/AutoResizeTextArea';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
-import { parseAddressString } from '../utils/addressFormatter';
+import { parseAddressString, parseStreetAddress } from '../utils/addressFormatter';
 import { uploadImageToCloudinary } from '../utils/imageUpload';
 import api from '../utils/api';
 import styles from './GarageSalesAdmin.module.css';
@@ -119,7 +119,11 @@ const GarageSalesAdmin = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
   const [formData, setFormData] = useState({
-    address: '',
+    street: '',
+    unit: '',
+    city: '',
+    provState: '',
+    postalZipCode: '',
     description: '',
     featuredItems: [],
     paymentTypes: [],
@@ -129,6 +133,8 @@ const GarageSalesAdmin = () => {
     images: []
   });
   const [imageUploading, setImageUploading] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [useManualAddress, setUseManualAddress] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importFile, setImportFile] = useState(null);
@@ -198,8 +204,14 @@ const GarageSalesAdmin = () => {
 
   const handleAddNew = () => {
     setEditingSale(null);
+    setSelectedPlace(null);
+    setUseManualAddress(false);
     setFormData({
-      address: '',
+      street: '',
+      unit: '',
+      city: '',
+      provState: '',
+      postalZipCode: '',
       description: '',
       featuredItems: [],
       paymentTypes: [],
@@ -215,8 +227,17 @@ const GarageSalesAdmin = () => {
   const handleEdit = (sale) => {
     setIsAddingNew(false);
     setEditingSale(sale);
+    // Manual mode so the existing address is visible/editable in the text fields
+    setUseManualAddress(true);
+    setSelectedPlace(null);
     setFormData({
-      address: sale.address,
+      street: sale.rawAddress?.streetNum && sale.rawAddress?.street
+        ? `${sale.rawAddress.streetNum} ${sale.rawAddress.street}`
+        : sale.rawAddress?.street || sale.address || '',
+      unit: sale.rawAddress?.unit || '',
+      city: sale.rawAddress?.city || '',
+      provState: sale.rawAddress?.provState || '',
+      postalZipCode: sale.rawAddress?.postalZipCode || '',
       description: sale.description,
       featuredItems: sale.featuredItems || [],
       paymentTypes: sale.paymentTypes || [],
@@ -231,7 +252,11 @@ const GarageSalesAdmin = () => {
   const handleCancelEdit = () => {
     setEditingSale(null);
     setFormData({
-      address: '',
+      street: '',
+      unit: '',
+      city: '',
+      provState: '',
+      postalZipCode: '',
       description: '',
       featuredItems: [],
       paymentTypes: [],
@@ -249,6 +274,11 @@ const GarageSalesAdmin = () => {
       ...prev,
       [name]: value
     }));
+
+    // If manually entering address, clear the selected place
+    if (name === 'street' && selectedPlace) {
+      setSelectedPlace(null);
+    }
   };
 
   // Handle adding a new featured item
@@ -340,11 +370,92 @@ const GarageSalesAdmin = () => {
     });
   };
 
-  const handleAddressSelect = (selected) => {
-    setFormData(prev => ({
-      ...prev,
-      address: selected ? selected.label : ''
-    }));
+  // Handle address selection from Google Places Autocomplete — fills all address fields
+  const handleAddressSelect = (place) => {
+    if (!place) {
+      // Handle clearing the selection (when X is clicked)
+      setSelectedPlace(null);
+      setFormData(prev => ({
+        ...prev,
+        street: '',
+        unit: '',
+        city: '',
+        provState: '',
+        postalZipCode: ''
+      }));
+      return;
+    }
+
+    setSelectedPlace(place);
+
+    const placeId = place.value.place_id;
+
+    // Use Google Places service to get detailed address components
+    if (window.google && window.google.maps && window.google.maps.places) {
+      const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+
+      service.getDetails({
+        placeId: placeId,
+        fields: ['address_components', 'formatted_address']
+      }, (result, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && result) {
+          const addressComponents = result.address_components;
+
+          let streetNum = '';
+          let streetName = '';
+          let city = '';
+          let state = '';
+          let postalCode = '';
+          let unit = '';
+
+          addressComponents.forEach(component => {
+            const types = component.types;
+
+            if (types.includes('street_number')) {
+              streetNum = component.long_name;
+            } else if (types.includes('route')) {
+              streetName = component.long_name;
+            } else if (types.includes('locality')) {
+              city = component.long_name;
+            } else if (types.includes('administrative_area_level_1')) {
+              state = component.short_name;
+            } else if (types.includes('postal_code')) {
+              postalCode = component.long_name;
+            } else if (types.includes('subpremise')) {
+              unit = component.long_name;
+            }
+          });
+
+          const fullStreet = streetNum ? `${streetNum} ${streetName}`.trim() : streetName;
+
+          setFormData(prev => ({
+            ...prev,
+            street: fullStreet,
+            unit: unit || '',
+            city: city || '',
+            provState: state || '',
+            postalZipCode: postalCode || ''
+          }));
+
+          // Custom display value so the selected place shows the full street address
+          setSelectedPlace({
+            label: fullStreet,
+            value: {
+              place_id: placeId,
+              description: fullStreet
+            }
+          });
+        } else {
+          logger.error('[GarageSalesAdmin] Error getting place details:', status);
+          setSubmitError('Failed to get address details. Please try entering manually.');
+          setUseManualAddress(true);
+        }
+      });
+    } else {
+      logger.error('[GarageSalesAdmin] Google Maps Places API not loaded');
+      setSubmitError('Address search is not available. Please enter the address manually.');
+      setUseManualAddress(true);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -356,16 +467,21 @@ const GarageSalesAdmin = () => {
         // payloads small and skips the API call entirely on a no-op save.
         const updateData = { community: communityId };
 
-        if (formData.address !== editingSale.address) {
-          const parts = parseAddressString(formData.address);
-          updateData.address = {
-            street: parts.street,
-            streetNum: parts.streetNumber,
-            city: parts.city,
-            provState: parts.state,
-            postalZipCode: '',
-            unit: ''
-          };
+        const { streetNum, street } = parseStreetAddress(formData.street);
+        const newAddress = {
+          street: street || '',
+          streetNum: streetNum || '',
+          unit: formData.unit || '',
+          city: formData.city || '',
+          provState: formData.provState || '',
+          postalZipCode: formData.postalZipCode || ''
+        };
+        const existingAddress = editingSale.rawAddress || {};
+        const addressChanged = Object.keys(newAddress).some(
+          key => String(newAddress[key] ?? '') !== String(existingAddress[key] ?? '')
+        );
+        if (addressChanged) {
+          updateData.address = newAddress;
         }
 
         if (formData.description !== editingSale.description) {
@@ -417,7 +533,7 @@ const GarageSalesAdmin = () => {
         }
       } else {
         // Client-side duplicate check against currently loaded sales
-        const normalizedInput = formData.address.trim().toLowerCase().replace(/\s+/g, ' ');
+        const normalizedInput = formData.street.trim().toLowerCase().replace(/\s+/g, ' ');
         const isDuplicate = garageSales.some(
           sale => (sale.address || '').trim().toLowerCase().replace(/\s+/g, ' ') === normalizedInput
         );
@@ -427,18 +543,18 @@ const GarageSalesAdmin = () => {
           return;
         }
 
-        // Parse the address from the form using utility
-        const addressData = parseAddressString(formData.address);
-        
+        // Parse street number and name from the street field
+        const { streetNum, street } = parseStreetAddress(formData.street);
+
         // Create the sale data object with all required fields
         const saleData = {
           address: {
-            street: addressData.street || '',
-            streetNum: addressData.streetNumber || '',
-            city: addressData.city || '',
-            provState: addressData.state || '',
-            postalZipCode: addressData.postalCode || '',
-            unit: addressData.unit || '',
+            street: street || '',
+            streetNum: streetNum || '',
+            city: formData.city || '',
+            provState: formData.provState || '',
+            postalZipCode: formData.postalZipCode || '',
+            unit: formData.unit || '',
             country: 'Canada' // Ensure country is included
           },
           description: formData.description || 'GARAGE SALE',
@@ -1054,14 +1170,102 @@ const GarageSalesAdmin = () => {
       {(isAddingNew || editingSale) && (
         <form onSubmit={handleSubmit} className={styles.garageForm}>
           <div className={styles.formGroup}>
-            <label>Address:</label>
-            <GooglePlacesAutocomplete
-              selectProps={{
-                value: { label: formData.address, value: formData.address },
-                onChange: (selected) => handleAddressSelect(selected),
-                placeholder: "Enter address..."
-              }}
-            />
+            <label>
+              Street Address <span style={{ color: 'red' }}>*</span>
+            </label>
+            {useManualAddress ? (
+              <input
+                type="text"
+                name="street"
+                value={formData.street}
+                onChange={handleInputChange}
+                placeholder="e.g., 123 Main St"
+                required
+                className={styles.addressInput}
+              />
+            ) : (
+              <GooglePlacesAutocomplete
+                apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+                autocompletionRequest={{
+                  types: ['address'],
+                  componentRestrictions: {
+                    country: ['us', 'ca']
+                  }
+                }}
+                selectProps={{
+                  value: selectedPlace,
+                  onChange: handleAddressSelect,
+                  placeholder: 'Search for the address...',
+                  isClearable: true
+                }}
+              />
+            )}
+            {!useManualAddress && (
+              <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                Search for the address to auto-fill all fields below
+              </small>
+            )}
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>Unit</label>
+              <input
+                type="text"
+                name="unit"
+                value={formData.unit}
+                onChange={handleInputChange}
+                placeholder="Unit"
+                className={styles.addressInput}
+              />
+            </div>
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>
+                City <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                placeholder="City, village, town, etc"
+                required
+                className={styles.addressInput}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>
+                Province/State <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                name="provState"
+                value={formData.provState}
+                onChange={handleInputChange}
+                placeholder="ON"
+                required
+                className={styles.addressInput}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>
+                Postal/Zip Code <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                name="postalZipCode"
+                value={formData.postalZipCode}
+                onChange={handleInputChange}
+                placeholder="A1A 1A1"
+                required
+                className={styles.addressInput}
+              />
+            </div>
           </div>
 
           <div className={styles.formGroup}>

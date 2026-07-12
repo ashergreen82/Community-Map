@@ -695,3 +695,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Address fields — matches the homeowner registration form layout */
+.formRow {
+  display: flex;
+  gap: 15px;
+}
+
+.formRow .formGroup {
+  flex: 1;
+}
+
+.addressInput {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.addressInput:focus {
+  outline: none;
+  border-color: #4285f4;
+}
+
+@media (max-width: 600px) {
+  .formRow {
+    flex-direction: column;
+    gap: 0;
+  }
+}
